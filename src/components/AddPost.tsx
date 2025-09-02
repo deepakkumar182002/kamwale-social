@@ -1,7 +1,6 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
 import { CldUploadWidget } from "next-cloudinary";
 import Image from "next/image";
 import { useState } from "react";
@@ -12,10 +11,28 @@ const AddPost = () => {
   const { user, isLoaded } = useUser();
   const [desc, setDesc] = useState("");
   const [img, setImg] = useState<any>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isLoaded) {
     return "Loading...";
   }
+
+  const handleSubmit = async (formData: FormData) => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    try {
+      await addPost(formData, img?.secure_url || "");
+      // Reset form after successful submission
+      setDesc("");
+      setImg(null);
+    } catch (error) {
+      console.error("Error submitting post:", error);
+      alert("Failed to post. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="p-4 bg-white shadow-md rounded-lg flex gap-4 justify-between text-sm">
@@ -30,12 +47,14 @@ const AddPost = () => {
       {/* POST */}
       <div className="flex-1">
         {/* TEXT INPUT */}
-        <form action={(formData)=>addPost(formData,img?.secure_url || "")} className="flex gap-4">
+        <form action={handleSubmit} className="flex gap-4">
           <textarea
             placeholder="What's on your mind?"
             className="flex-1 bg-slate-100 rounded-lg p-2"
             name="desc"
+            value={desc}
             onChange={(e) => setDesc(e.target.value)}
+            disabled={isSubmitting}
           ></textarea>
           <div className="">
             <Image
@@ -48,13 +67,37 @@ const AddPost = () => {
             <AddPostButton />
           </div>
         </form>
+        {/* UPLOADED IMAGE PREVIEW */}
+        {img && (
+          <div className="mt-4 relative">
+            <Image
+              src={img.secure_url}
+              alt="Uploaded"
+              width={200}
+              height={200}
+              className="object-cover rounded-lg"
+            />
+            <button
+              onClick={() => setImg(null)}
+              className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+              type="button"
+            >
+              ×
+            </button>
+          </div>
+        )}
         {/* POST OPTIONS */}
         <div className="flex items-center gap-4 mt-4 text-gray-400 flex-wrap">
           <CldUploadWidget
-            uploadPreset="social"
+            uploadPreset="kamwale"
             onSuccess={(result, { widget }) => {
+              console.log("Upload successful:", result.info);
               setImg(result.info);
               widget.close();
+            }}
+            onError={(error) => {
+              console.error("Upload error:", error);
+              alert("Upload failed. Please try again.");
             }}
           >
             {({ open }) => {

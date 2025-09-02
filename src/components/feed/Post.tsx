@@ -5,6 +5,9 @@ import PostInteraction from "./PostInteraction";
 import { Suspense } from "react";
 import PostInfo from "./PostInfo";
 import { auth } from "@clerk/nextjs/server";
+import FollowButton from "../FollowButton";
+import ClickableUserInfo from "../ClickableUserInfo";
+import prisma from "@/lib/client";
 
 type FeedPostType = PostType & { user: User } & {
   likes: [{ userId: string }];
@@ -12,27 +15,56 @@ type FeedPostType = PostType & { user: User } & {
   _count: { comments: number };
 };
 
-const Post = ({ post }: { post: FeedPostType }) => {
+const Post = async ({ post }: { post: FeedPostType }) => {
   const { userId } = auth();
+  
+  // Check follow status for the post author
+  let isFollowing = false;
+  let isFollowRequestSent = false;
+  let isBlocked = false;
+
+  if (userId && userId !== post.user.id) {
+    const [followRelation, followRequest, blockRelation] = await Promise.all([
+      prisma.follower.findFirst({
+        where: {
+          followerId: userId,
+          followingId: post.user.id,
+        },
+      }),
+      prisma.followRequest.findFirst({
+        where: {
+          senderId: userId,
+          receiverId: post.user.id,
+        },
+      }),
+      prisma.block.findFirst({
+        where: {
+          blockerId: post.user.id,
+          blockedId: userId,
+        },
+      }),
+    ]);
+
+    isFollowing = !!followRelation;
+    isFollowRequestSent = !!followRequest;
+    isBlocked = !!blockRelation;
+  }
   return (
     <div className="flex flex-col gap-4">
       {/* USER */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Image
-            src={post.user.avatar || "/noAvatar.png"}
-            width={40}
-            height={40}
-            alt=""
-            className="w-10 h-10 rounded-full"
-          />
-          <span className="font-medium">
-            {post.user.name && post.user.surname
-              ? post.user.name + " " + post.user.surname
-              : post.user.username}
-          </span>
+        <ClickableUserInfo user={post.user} />
+        <div className="flex items-center gap-2">
+          {userId !== post.user.id && userId && (
+            <FollowButton
+              userId={post.user.id}
+              isUserBlocked={isBlocked}
+              isFollowing={isFollowing}
+              isFollowingSent={isFollowRequestSent}
+            />
+          )}
+          {userId === post.user.id && <PostInfo postId={post.id} />}
         </div>
-        {userId === post.user.id && <PostInfo postId={post.id} />}
       </div>
       {/* DESC */}
       <div className="flex flex-col gap-4">

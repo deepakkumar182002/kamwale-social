@@ -8,6 +8,7 @@ export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
+    console.error("WEBHOOK_SECRET is missing from environment variables");
     throw new Error(
       "Please add WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local"
     );
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
 
   // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
+    console.error("Missing svix headers:", { svix_id, svix_timestamp, svix_signature });
     return new Response("Error occured -- no svix headers", {
       status: 400,
     });
@@ -53,39 +55,56 @@ export async function POST(req: Request) {
   // For this guide, you simply log the payload to the console
   const { id } = evt.data;
   const eventType = evt.type;
-  // console.log(`Webhook with and ID of ${id} and type of ${eventType}`)
-  // console.log('Webhook body:', body)
+  
+  console.log(`Webhook received: ID=${id}, Type=${eventType}`);
+  console.log('Full webhook body:', JSON.stringify(evt.data, null, 2));
 
   if (eventType === "user.created") {
+    console.log("Creating new user...");
     try {
+      const userData = {
+        id: evt.data.id,
+        username: evt.data.username || `user_${evt.data.id.slice(-8)}`,
+        avatar: evt.data.image_url || "/noAvatar.png",
+        cover: "/noCover.png",
+      };
+      console.log("Creating user with data:", userData);
+      
       await prisma.user.create({
-        data: {
-          id: evt.data.id,
-          username: JSON.parse(body).data.username,
-          avatar: JSON.parse(body).data.image_url || "/noAvatar.png",
-          cover: "/noCover.png",
-        },
+        data: userData,
       });
+      console.log("User created successfully!");
       return new Response("User has been created!", { status: 200 });
     } catch (err) {
-      console.log(err);
+      console.log("Error creating user:", err);
       return new Response("Failed to create the user!", { status: 500 });
     }
   }
+  
   if (eventType === "user.updated") {
+    console.log("Updating existing user...");
     try {
-      await prisma.user.update({
+      const updateData: any = {
+        avatar: evt.data.image_url || "/noAvatar.png",
+      };
+      
+      // Only update username if it exists
+      if (evt.data.username) {
+        updateData.username = evt.data.username;
+      }
+      
+      console.log("Updating user with data:", updateData);
+      
+      const updatedUser = await prisma.user.update({
         where: {
           id: evt.data.id,
         },
-        data: {
-          username: JSON.parse(body).data.username,
-          avatar: JSON.parse(body).data.image_url || "/noAvatar.png",
-        },
+        data: updateData,
       });
+      console.log("User updated successfully:", updatedUser);
       return new Response("User has been updated!", { status: 200 });
     } catch (err) {
-      console.log(err);
+      console.log("Error updating user:", err);
       return new Response("Failed to update the user!", { status: 500 });
     }
   }

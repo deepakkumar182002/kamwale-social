@@ -62,7 +62,7 @@ const StoryList = ({
   return (
     <>
       <CldUploadWidget
-        uploadPreset="social"
+        uploadPreset="kamwale"
         onSuccess={(result, { widget }) => {
           setImg(result.info);
           widget.close();

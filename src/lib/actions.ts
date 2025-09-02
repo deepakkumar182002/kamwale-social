@@ -5,6 +5,38 @@ import prisma from "./client";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
+// Utility function to ensure user exists in database
+export const ensureUserExists = async (userId: string) => {
+  let user = await prisma.user.findUnique({
+    where: { id: userId }
+  });
+
+  if (!user) {
+    console.log("User not found in database, creating new user:", userId);
+    // Get user data from Clerk
+    const { currentUser } = await import("@clerk/nextjs/server");
+    const clerkUser = await currentUser();
+    
+    if (clerkUser) {
+      user = await prisma.user.create({
+        data: {
+          id: userId,
+          username: clerkUser.username || `user_${userId.slice(-8)}`,
+          avatar: clerkUser.imageUrl || "/noAvatar.png",
+          cover: "/noCover.png",
+          name: clerkUser.firstName || "",
+          surname: clerkUser.lastName || "",
+        },
+      });
+      console.log("User created successfully:", user.username);
+    } else {
+      throw new Error("Could not get user data from Clerk");
+    }
+  }
+  
+  return user;
+};
+
 export const switchFollow = async (userId: string) => {
   const { userId: currentUserId } = auth();
 
@@ -13,6 +45,10 @@ export const switchFollow = async (userId: string) => {
   }
 
   try {
+    // Ensure both users exist
+    await ensureUserExists(currentUserId);
+    await ensureUserExists(userId);
+
     const existingFollow = await prisma.follower.findFirst({
       where: {
         followerId: currentUserId,
@@ -49,9 +85,11 @@ export const switchFollow = async (userId: string) => {
         });
       }
     }
+
+    revalidatePath("/");
   } catch (err) {
     console.log(err);
-    throw new Error("Something went wrong!");
+    throw new Error("Something went wrong");
   }
 };
 
@@ -208,6 +246,9 @@ export const switchLike = async (postId: number) => {
   if (!userId) throw new Error("User is not authenticated!");
 
   try {
+    // Ensure user exists
+    await ensureUserExists(userId);
+    
     const existingLike = await prisma.like.findFirst({
       where: {
         postId,
@@ -241,6 +282,9 @@ export const addComment = async (postId: number, desc: string) => {
   if (!userId) throw new Error("User is not authenticated!");
 
   try {
+    // Ensure user exists
+    await ensureUserExists(userId);
+    
     const createdComment = await prisma.comment.create({
       data: {
         desc,
@@ -252,10 +296,11 @@ export const addComment = async (postId: number, desc: string) => {
       },
     });
 
+    revalidatePath("/");
     return createdComment;
   } catch (err) {
     console.log(err);
-    throw new Error("Something went wrong!");
+    throw new Error("Something went wrong");
   }
 };
 
@@ -267,26 +312,34 @@ export const addPost = async (formData: FormData, img: string) => {
   const validatedDesc = Desc.safeParse(desc);
 
   if (!validatedDesc.success) {
-    //TODO
     console.log("description is not valid");
-    return;
+    throw new Error("Description must be between 1 and 255 characters");
   }
+  
   const { userId } = auth();
 
   if (!userId) throw new Error("User is not authenticated!");
 
   try {
+    console.log("Creating post with:", { desc: validatedDesc.data, userId, img });
+    
+    // Ensure user exists in database
+    await ensureUserExists(userId);
+    
     await prisma.post.create({
       data: {
         desc: validatedDesc.data,
         userId,
-        img,
+        img: img || null,
       },
     });
 
+    console.log("Post created successfully!");
     revalidatePath("/");
+    return { success: true };
   } catch (err) {
-    console.log(err);
+    console.error("Error creating post:", err);
+    throw new Error("Failed to create post");
   }
 };
 

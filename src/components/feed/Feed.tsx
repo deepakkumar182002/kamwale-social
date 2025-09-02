@@ -5,9 +5,10 @@ import prisma from "@/lib/client";
 const Feed = async ({ username }: { username?: string }) => {
   const { userId } = auth();
 
-  let posts:any[] =[];
+  let posts: any[] = [];
 
   if (username) {
+    // Show posts from a specific user (for profile pages)
     posts = await prisma.post.findMany({
       where: {
         user: {
@@ -31,27 +32,9 @@ const Feed = async ({ username }: { username?: string }) => {
         createdAt: "desc",
       },
     });
-  }
-
-  if (!username && userId) {
-    const following = await prisma.follower.findMany({
-      where: {
-        followerId: userId,
-      },
-      select: {
-        followingId: true,
-      },
-    });
-
-    const followingIds = following.map((f) => f.followingId);
-    const ids = [userId,...followingIds]
-
+  } else {
+    // Show all posts from all users (home page - like Instagram discovery)
     posts = await prisma.post.findMany({
-      where: {
-        userId: {
-          in: ids,
-        },
-      },
       include: {
         user: true,
         likes: {
@@ -68,6 +51,7 @@ const Feed = async ({ username }: { username?: string }) => {
       orderBy: {
         createdAt: "desc",
       },
+      take: 20, // Limit to 20 most recent posts for better performance
     });
   }
   return (
