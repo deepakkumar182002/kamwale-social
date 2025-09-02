@@ -25,6 +25,8 @@ model User {
   work                   String?
   website                String?
   createdAt              DateTime        @default(now())
+  lastSeen               DateTime        @default(now())
+  isOnline               Boolean         @default(false)
   posts                  Post[]
   comments               Comment[]
   likes                  Like[]
@@ -35,6 +37,11 @@ model User {
   blocks                 Block[]         @relation("BlocksSent")
   blockedBy              Block[]         @relation("BlocksReceived")
   stories                Story[]
+  sentMessages           Message[]       @relation("MessageSender")
+  receivedMessages       Message[]       @relation("MessageReceiver")
+  chatParticipants       ChatParticipant[]
+  notifications          Notification[]  @relation("NotificationRecipient")
+  sentNotifications      Notification[]  @relation("NotificationSender")
 }
 
 model Post {
@@ -110,4 +117,51 @@ model Story {
   img       String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String   @unique
+}
+
+model Chat {
+  id           String            @id @default(cuid())
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  participants ChatParticipant[]
+  messages     Message[]
+}
+
+model ChatParticipant {
+  id     String @id @default(cuid())
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([chatId, userId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  content    String
+  imageUrl   String?  // New field for image messages
+  type       String   @default("text") // "text" or "image"
+  createdAt  DateTime @default(now())
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId     String
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId   String
+  receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiverId String
+  read       Boolean  @default(false)
+  readAt     DateTime? // When the message was read
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  type       String   // "message", "like", "follow", "comment"
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  sender     User     @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId   String
+  recipient  User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String
+  relatedId  String?  // ID of related post, message, etc.
 }

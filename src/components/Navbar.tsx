@@ -1,6 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import MobileMenu from "./MobileMenu";
 import Image from "next/image";
+import SearchFriends from "./SearchFriends";
+import ChatModal from "./ChatModal";
+import NotificationIcon from "./NotificationIcon";
+import { useState } from "react";
 import {
   ClerkLoaded,
   ClerkLoading,
@@ -10,6 +16,8 @@ import {
 } from "@clerk/nextjs";
 
 const Navbar = () => {
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
   return (
     <div className="h-24 flex items-center justify-between">
       {/* LEFT */}
@@ -53,9 +61,8 @@ const Navbar = () => {
             <span>Stories</span>
           </Link>
         </div>
-        <div className='hidden xl:flex p-2 bg-slate-100 items-center rounded-xl'>
-          <input type="text" placeholder="search..." className="bg-transparent outline-none"/>
-          <Image src="/search.png" alt="" width={14} height={14}/>
+        <div className='hidden xl:flex'>
+          <SearchFriends />
         </div>
       </div>
       {/* RIGHT */}
@@ -68,12 +75,13 @@ const Navbar = () => {
             <div className="cursor-pointer">
               <Image src="/people.png" alt="" width={24} height={24} />
             </div>
-            <div className="cursor-pointer">
-              <Image src="/messages.png" alt="" width={20} height={20} />
+            <div 
+              className="cursor-pointer hover:opacity-75 transition-opacity"
+              onClick={() => setIsChatOpen(true)}
+            >
+              <Image src="/messages.png" alt="Messages" width={20} height={20} />
             </div>
-            <div className="cursor-pointer">
-              <Image src="/notifications.png" alt="" width={20} height={20} />
-            </div>
+            <NotificationIcon />
             <UserButton />
           </SignedIn>
           <SignedOut>
@@ -85,6 +93,9 @@ const Navbar = () => {
         </ClerkLoaded>
         <MobileMenu />
       </div>
+
+      {/* Chat Modal */}
+      <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 };

@@ -2,6 +2,8 @@
 import Feed from "@/components/feed/Feed";
 import LeftMenu from "@/components/leftMenu/LeftMenu";
 import RightMenu from "@/components/rightMenu/RightMenu";
+import FollowButton from "@/components/FollowButton";
+import MessageButton from "@/components/MessageButton";
 import prisma from "@/lib/client";
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
@@ -9,6 +11,9 @@ import { notFound } from "next/navigation";
 
 const ProfilePage = async ({ params }: { params: { username: string } }) => {
   const username = params.username;
+  
+  // Debug: Log the username being searched
+  console.log("Looking for username:", username);
 
   const user = await prisma.user.findFirst({
     where: {
@@ -25,23 +30,45 @@ const ProfilePage = async ({ params }: { params: { username: string } }) => {
     },
   });
 
-  if (!user) return notFound();
+  // Debug: Log the user found
+  console.log("User found:", user ? user.username : "No user found");
+
+  if (!user) {
+    console.log("User not found, returning 404");
+    return notFound();
+  }
 
   const { userId: currentUserId } = auth();
 
-  let isBlocked;
+  let isBlocked = false;
+  let isFollowing = false;
+  let isFollowRequestSent = false;
 
   if (currentUserId) {
-    const res = await prisma.block.findFirst({
-      where: {
-        blockerId: user.id,
-        blockedId: currentUserId,
-      },
-    });
+    const [blockRelation, followRelation, followRequest] = await Promise.all([
+      prisma.block.findFirst({
+        where: {
+          blockerId: user.id,
+          blockedId: currentUserId,
+        },
+      }),
+      prisma.follower.findFirst({
+        where: {
+          followerId: currentUserId,
+          followingId: user.id,
+        },
+      }),
+      prisma.followRequest.findFirst({
+        where: {
+          senderId: currentUserId,
+          receiverId: user.id,
+        },
+      }),
+    ]);
 
-    if (res) isBlocked = true;
-  } else {
-    isBlocked = false;
+    isBlocked = !!blockRelation;
+    isFollowing = !!followRelation;
+    isFollowRequestSent = !!followRequest;
   }
 
   if (isBlocked) return notFound();
@@ -74,6 +101,23 @@ const ProfilePage = async ({ params }: { params: { username: string } }) => {
                 ? user.name + " " + user.surname
                 : user.username}
             </h1>
+            
+            {/* Follow Button */}
+            {currentUserId && currentUserId !== user.id && (
+              <div className="mb-4 flex gap-3 justify-center">
+                <FollowButton
+                  userId={user.id}
+                  isUserBlocked={isBlocked}
+                  isFollowing={isFollowing}
+                  isFollowingSent={isFollowRequestSent}
+                />
+                <MessageButton
+                  userId={user.id}
+                  username={user.username}
+                />
+              </div>
+            )}
+            
             <div className="flex items-center justify-center gap-12 mb-4">
               <div className="flex flex-col items-center">
                 <span className="font-medium">{user._count.posts}</span>
