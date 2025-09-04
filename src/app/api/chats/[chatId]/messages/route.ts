@@ -2,6 +2,70 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { chatId: string } }
+) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { chatId } = params;
+
+    // Verify the user is a participant in this chat
+    const chat = await prisma.chat.findUnique({
+      where: { id: chatId },
+      include: {
+        participants: true,
+      },
+    });
+
+    if (!chat) {
+      return NextResponse.json({ error: "Chat not found" }, { status: 404 });
+    }
+
+    const userParticipant = chat.participants.find(p => p.userId === userId);
+    if (!userParticipant) {
+      return NextResponse.json(
+        { error: "You are not a participant in this chat" },
+        { status: 403 }
+      );
+    }
+
+    // Get messages for this chat
+    const messages = await prisma.message.findMany({
+      where: {
+        chatId: chatId,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            surname: true,
+            avatar: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    return NextResponse.json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { chatId: string } }

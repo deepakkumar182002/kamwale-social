@@ -45,6 +45,8 @@ const StoryList = ({
         school: "",
         website: "",
         createdAt: new Date(Date.now()),
+        lastSeen: new Date(Date.now()),
+        isOnline: true,
       },
     });
 
