@@ -1,58 +1,78 @@
-import prisma from "@/lib/client";
-import { auth } from "@clerk/nextjs/server";
+"use client";
+
+import { useUser } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
 import { User } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import UserInfoCardInteraction from "./UserInfoCardInteraction";
 import UpdateUser from "./UpdateUser";
 
-const UserInfoCard = async ({ user }: { user: User }) => {
-  const createdAtDate = new Date(user.createdAt);
+interface UserInfoCardProps {
+  user: User;
+}
 
+interface UserRelationStatus {
+  isUserBlocked: boolean;
+  isFollowing: boolean;
+  isFollowingSent: boolean;
+}
+
+const UserInfoCard = ({ user }: UserInfoCardProps) => {
+  const { user: currentUser, isLoaded } = useUser();
+  const [relationStatus, setRelationStatus] = useState<UserRelationStatus>({
+    isUserBlocked: false,
+    isFollowing: false,
+    isFollowingSent: false
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRelationStatus = async () => {
+      if (currentUser && currentUser.id !== user.id) {
+        try {
+          const response = await fetch(`/api/users/follow-status?userId=${user.id}`);
+          if (response.ok) {
+            const status = await response.json();
+            setRelationStatus({
+              isUserBlocked: status.isBlocked,
+              isFollowing: status.isFollowing,
+              isFollowingSent: status.isFollowRequestSent
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching relation status:', error);
+        }
+      }
+      setLoading(false);
+    };
+
+    if (isLoaded) {
+      fetchRelationStatus();
+    }
+  }, [currentUser, user.id, isLoaded]);
+
+  const createdAtDate = new Date(user.createdAt);
   const formattedDate = createdAtDate.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 
-  let isUserBlocked = false;
-  let isFollowing = false;
-  let isFollowingSent = false;
-
-  const { userId: currentUserId } = auth();
-
-  if (currentUserId) {
-    const blockRes = await prisma.block.findFirst({
-      where: {
-        blockerId: currentUserId,
-        blockedId: user.id,
-      },
-    });
-
-    blockRes ? (isUserBlocked = true) : (isUserBlocked = false);
-    const followRes = await prisma.follower.findFirst({
-      where: {
-        followerId: currentUserId,
-        followingId: user.id,
-      },
-    });
-
-    followRes ? (isFollowing = true) : (isFollowing = false);
-    const followReqRes = await prisma.followRequest.findFirst({
-      where: {
-        senderId: currentUserId,
-        receiverId: user.id,
-      },
-    });
-
-    followReqRes ? (isFollowingSent = true) : (isFollowingSent = false);
+  if (!isLoaded) {
+    return (
+      <div className="p-4 bg-white rounded-lg shadow-md text-sm flex flex-col gap-4 animate-pulse">
+        <div className="h-4 bg-gray-200 rounded"></div>
+        <div className="h-20 bg-gray-200 rounded"></div>
+      </div>
+    );
   }
   return (
     <div className="p-4 bg-white rounded-lg shadow-md text-sm flex flex-col gap-4">
       {/* TOP */}
       <div className="flex justify-between items-center font-medium">
         <span className="text-gray-500">User Information</span>
-        {currentUserId === user.id ? (
+        {currentUser?.id === user.id ? (
           <UpdateUser user={user}/>
         ) : (
           <Link href="/" className="text-blue-500 text-xs">
@@ -110,12 +130,12 @@ const UserInfoCard = async ({ user }: { user: User }) => {
             <span>Joined {formattedDate}</span>
           </div>
         </div>
-        {currentUserId && currentUserId !== user.id && (
+        {currentUser && currentUser.id !== user.id && !loading && (
           <UserInfoCardInteraction
             userId={user.id}
-            isUserBlocked={isUserBlocked}
-            isFollowing={isFollowing}
-            isFollowingSent={isFollowingSent}
+            isUserBlocked={relationStatus.isUserBlocked}
+            isFollowing={relationStatus.isFollowing}
+            isFollowingSent={relationStatus.isFollowingSent}
           />
         )}
       </div>

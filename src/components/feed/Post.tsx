@@ -1,13 +1,15 @@
+"use client";
+
 import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
 import Comments from "./Comments";
 import { Post as PostType, User } from "@prisma/client";
 import PostInteraction from "./PostInteraction";
 import { Suspense } from "react";
 import PostInfo from "./PostInfo";
-import { auth } from "@clerk/nextjs/server";
 import FollowButton from "../FollowButton";
 import ClickableUserInfo from "../ClickableUserInfo";
-import prisma from "@/lib/client";
 
 type FeedPostType = PostType & { user: User } & {
   likes: [{ userId: string }];
@@ -15,52 +17,54 @@ type FeedPostType = PostType & { user: User } & {
   _count: { comments: number };
 };
 
-const Post = async ({ post }: { post: FeedPostType }) => {
-  const { userId } = auth();
+interface FollowStatus {
+  isFollowing: boolean;
+  isFollowRequestSent: boolean;
+  isBlocked: boolean;
+}
+
+const Post = ({ post }: { post: FeedPostType }) => {
+  const { user } = useUser();
+  const [followStatus, setFollowStatus] = useState<FollowStatus>({
+    isFollowing: false,
+    isFollowRequestSent: false,
+    isBlocked: false
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFollowStatus = async () => {
+      if (user && user.id !== post.user.id) {
+        try {
+          const response = await fetch(`/api/users/follow-status?userId=${post.user.id}`);
+          if (response.ok) {
+            const status = await response.json();
+            setFollowStatus(status);
+          }
+        } catch (error) {
+          console.error('Error fetching follow status:', error);
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchFollowStatus();
+  }, [user, post.user.id]);
+
+  const userId = user?.id;
   
-  // Check follow status for the post author
-  let isFollowing = false;
-  let isFollowRequestSent = false;
-  let isBlocked = false;
-
-  if (userId && userId !== post.user.id) {
-    const [followRelation, followRequest, blockRelation] = await Promise.all([
-      prisma.follower.findFirst({
-        where: {
-          followerId: userId,
-          followingId: post.user.id,
-        },
-      }),
-      prisma.followRequest.findFirst({
-        where: {
-          senderId: userId,
-          receiverId: post.user.id,
-        },
-      }),
-      prisma.block.findFirst({
-        where: {
-          blockerId: post.user.id,
-          blockedId: userId,
-        },
-      }),
-    ]);
-
-    isFollowing = !!followRelation;
-    isFollowRequestSent = !!followRequest;
-    isBlocked = !!blockRelation;
-  }
   return (
     <div className="flex flex-col gap-4">
       {/* USER */}
       <div className="flex items-center justify-between">
         <ClickableUserInfo user={post.user} />
         <div className="flex items-center gap-2">
-          {userId !== post.user.id && userId && (
+          {userId !== post.user.id && userId && !loading && (
             <FollowButton
               userId={post.user.id}
-              isUserBlocked={isBlocked}
-              isFollowing={isFollowing}
-              isFollowingSent={isFollowRequestSent}
+              isUserBlocked={followStatus.isBlocked}
+              isFollowing={followStatus.isFollowing}
+              isFollowingSent={followStatus.isFollowRequestSent}
             />
           )}
           {userId === post.user.id && <PostInfo postId={post.id} />}

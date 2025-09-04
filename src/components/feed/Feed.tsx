@@ -1,59 +1,55 @@
-import { auth } from "@clerk/nextjs/server";
+"use client";
+
+import { useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 import Post from "./Post";
-import prisma from "@/lib/client";
 
-const Feed = async ({ username }: { username?: string }) => {
-  const { userId } = auth();
+const Feed = ({ username }: { username?: string }) => {
+  const { user, isLoaded } = useUser();
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  let posts: any[] = [];
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setLoading(true);
+        let url = '/api/posts';
+        if (username) {
+          url = `/api/posts?username=${encodeURIComponent(username)}`;
+        }
+        
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          setPosts(data);
+        } else {
+          console.error('Failed to fetch posts:', response.status);
+          setPosts([]);
+        }
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        setPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (username) {
-    // Show posts from a specific user (for profile pages)
-    posts = await prisma.post.findMany({
-      where: {
-        user: {
-          username: username,
-        },
-      },
-      include: {
-        user: true,
-        likes: {
-          select: {
-            userId: true,
-          },
-        },
-        _count: {
-          select: {
-            comments: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-  } else {
-    // Show all posts from all users (home page - like Instagram discovery)
-    posts = await prisma.post.findMany({
-      include: {
-        user: true,
-        likes: {
-          select: {
-            userId: true,
-          },
-        },
-        _count: {
-          select: {
-            comments: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 20, // Limit to 20 most recent posts for better performance
-    });
+    if (isLoaded) {
+      fetchPosts();
+    }
+  }, [username, isLoaded]);
+
+  if (!isLoaded || loading) {
+    return (
+      <div className="p-4 bg-white shadow-md rounded-lg flex flex-col gap-12">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
   }
+
   return (
     <div className="p-4 bg-white shadow-md rounded-lg flex flex-col gap-12">
       {posts.length ? (posts.map(post=>(
