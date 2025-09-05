@@ -1,44 +1,17 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import prisma from "@/lib/client";
+import Image from "next/image";
 import CommentList from "./CommentList";
 
-const Comments = ({postId}:{postId:number}) => {
-  const [comments, setComments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+const Comments = async ({postId}:{postId:string}) => {
 
-  useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/comments?postId=${postId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setComments(data);
-        } else {
-          console.error('Failed to fetch comments:', response.status);
-          setComments([]);
-        }
-      } catch (error) {
-        console.error('Error fetching comments:', error);
-        setComments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchComments();
-  }, [postId]);
-
-  if (loading) {
-    return (
-      <div className="animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-      </div>
-    );
-  }
-
+  const comments = await prisma.comment.findMany({
+    where:{
+      postId,
+    },
+    include:{
+      user:true
+    }
+  })
   return (
     <div className="">
       {/* WRITE */}

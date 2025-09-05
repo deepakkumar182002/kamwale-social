@@ -12,7 +12,7 @@ const CommentList = ({
   postId,
 }: {
   comments: CommentWithUser[];
-  postId: number;
+  postId: string;
 }) => {
   const { user } = useUser();
   const [commentState, setCommentState] = useState(comments);
@@ -22,7 +22,7 @@ const CommentList = ({
     if (!user || !desc) return;
 
     addOptimisticComment({
-      id: Math.random(),
+      id: Math.random().toString(),
       desc,
       createdAt: new Date(Date.now()),
       updatedAt: new Date(Date.now()),

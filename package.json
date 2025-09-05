@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^5.7.5",
     "@prisma/client": "^5.15.0",
+    "@supabase/supabase-js": "^2.57.2",
     "babel-plugin-react-compiler": "^0.0.0-experimental-938cd9a-20240601",
     "cloudinary": "^2.7.0",
     "date-fns": "^4.1.0",

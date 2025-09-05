@@ -3,44 +3,30 @@ import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 
-// Ensure this route is treated as dynamic
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
-
 export async function POST(req: Request) {
-  try {
-    // You can find this in the Clerk Dashboard -> Webhooks -> choose the endpoint
-    const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+  // You can find this in the Clerk Dashboard -> Webhooks -> choose the endpoint
+  const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
-    if (!WEBHOOK_SECRET) {
-      console.error("WEBHOOK_SECRET is missing from environment variables");
-      return new Response("Webhook secret not configured", {
-        status: 500,
-      });
-    }
+  if (!WEBHOOK_SECRET) {
+    console.error("WEBHOOK_SECRET is missing from environment variables");
+    throw new Error(
+      "Please add WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local"
+    );
+  }
 
-    // Get the headers
-    let headerPayload;
-    try {
-      headerPayload = headers();
-    } catch (error) {
-      console.error("Error getting headers during build:", error);
-      return new Response("Headers unavailable during build", {
-        status: 503,
-      });
-    }
+  // Get the headers
+  const headerPayload = headers();
+  const svix_id = headerPayload.get("svix-id");
+  const svix_timestamp = headerPayload.get("svix-timestamp");
+  const svix_signature = headerPayload.get("svix-signature");
 
-    const svix_id = headerPayload.get("svix-id");
-    const svix_timestamp = headerPayload.get("svix-timestamp");
-    const svix_signature = headerPayload.get("svix-signature");
-
-    // If there are no headers, error out
-    if (!svix_id || !svix_timestamp || !svix_signature) {
-      console.error("Missing svix headers:", { svix_id, svix_timestamp, svix_signature });
-      return new Response("Error occured -- no svix headers", {
-        status: 400,
-      });
-    }
+  // If there are no headers, error out
+  if (!svix_id || !svix_timestamp || !svix_signature) {
+    console.error("Missing svix headers:", { svix_id, svix_timestamp, svix_signature });
+    return new Response("Error occured -- no svix headers", {
+      status: 400,
+    });
+  }
 
   // Get the body
   const payload = await req.json();
@@ -124,8 +110,4 @@ export async function POST(req: Request) {
   }
 
   return new Response("Webhook received", { status: 200 });
-  } catch (error) {
-    console.error("Error in webhook handler:", error);
-    return new Response("Internal server error", { status: 500 });
-  }
 }

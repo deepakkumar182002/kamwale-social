@@ -4,7 +4,7 @@ import { deletePost } from "@/lib/actions";
 import Image from "next/image";
 import { useState } from "react";
 
-const PostInfo = ({ postId }: { postId: number }) => {
+const PostInfo = ({ postId }: { postId: string }) => {
   const [open, setOpen] = useState(false);
 
   const deletePostWithId = deletePost.bind(null, postId);

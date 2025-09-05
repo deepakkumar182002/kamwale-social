@@ -27,7 +27,7 @@ const StoryList = ({
     if (!img?.secure_url) return;
 
     addOptimisticStory({
-      id: Math.random(),
+      id: Math.random().toString(),
       img: img.secure_url,
       createdAt: new Date(Date.now()),
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),

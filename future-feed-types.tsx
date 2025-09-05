@@ -26,7 +26,7 @@ const Feed = async ({ username, type = 'explore' }: FeedProps) => {
       case 'following':
         // Show posts from followed users only
         if (userId) {
-          const following = await prisma.follower.findMany({
+          const following = await prisma.follow.findMany({
             where: { followerId: userId },
             select: { followingId: true },
           });

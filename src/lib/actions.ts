@@ -49,7 +49,7 @@ export const switchFollow = async (userId: string) => {
     await ensureUserExists(currentUserId);
     await ensureUserExists(userId);
 
-    const existingFollow = await prisma.follower.findFirst({
+    const existingFollow = await prisma.follow.findFirst({
       where: {
         followerId: currentUserId,
         followingId: userId,
@@ -57,7 +57,7 @@ export const switchFollow = async (userId: string) => {
     });
 
     if (existingFollow) {
-      await prisma.follower.delete({
+      await prisma.follow.delete({
         where: {
           id: existingFollow.id,
         },
@@ -150,7 +150,7 @@ export const acceptFollowRequest = async (userId: string) => {
         },
       });
 
-      await prisma.follower.create({
+      await prisma.follow.create({
         data: {
           followerId: userId,
           followingId: currentUserId,
@@ -240,7 +240,7 @@ export const updateProfile = async (
   }
 };
 
-export const switchLike = async (postId: number) => {
+export const switchLike = async (postId: string) => {
   const { userId } = auth();
 
   if (!userId) throw new Error("User is not authenticated!");
@@ -276,7 +276,7 @@ export const switchLike = async (postId: number) => {
   }
 };
 
-export const addComment = async (postId: number, desc: string) => {
+export const addComment = async (postId: string, desc: string) => {
   const { userId } = auth();
 
   if (!userId) throw new Error("User is not authenticated!");
@@ -379,7 +379,7 @@ export const addStory = async (img: string) => {
   }
 };
 
-export const deletePost = async (postId: number) => {
+export const deletePost = async (postId: string) => {
   const { userId } = auth();
 
   if (!userId) throw new Error("User is not authenticated!");
