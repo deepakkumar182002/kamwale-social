@@ -34,6 +34,7 @@ const StoryList = ({
       userId: userId,
       user: {
         id: userId,
+        clerkId: userId,
         username: "Sending...",
         avatar: user?.imageUrl || "/noAvatar.png",
         cover: "",

@@ -137,7 +137,7 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userId: targetUser.id }),
+        body: JSON.stringify({ otherUserId: targetUser.id }),
       });
 
       if (response.ok) {

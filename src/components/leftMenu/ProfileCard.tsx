@@ -1,39 +1,77 @@
-import prisma from "@/lib/client";
-import { auth } from "@clerk/nextjs/server";
+"use client";
+
+import { useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const ProfileCard = async () => {
-  const { userId } = auth();
+interface UserData {
+  id: string;
+  username: string;
+  avatar?: string;
+  cover?: string;
+  name?: string;
+  surname?: string;
+  _count: {
+    followers: number;
+  };
+}
 
-  if (!userId) return null;
+const ProfileCard = () => {
+  const { user, isLoaded } = useUser();
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const user = await prisma.user.findFirst({
-    where: {
-      id: userId,
-    },
-    include: {
-      _count: {
-        select: {
-          followers: true,
-        },
-      },
-    },
-  });
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/users/profile');
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data);
+        } else {
+          console.error('Failed to fetch user data:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!user) return null;
+    if (isLoaded && user) {
+      fetchUserData();
+    } else if (isLoaded && !user) {
+      setLoading(false);
+    }
+  }, [user, isLoaded]);
+
+  if (!isLoaded || loading) {
+    return (
+      <div className="p-4 bg-white rounded-lg shadow-md text-sm flex flex-col gap-6">
+        <div className="animate-pulse">
+          <div className="h-20 bg-gray-200 rounded-md mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !userData) return null;
 
   return (
     <div className="p-4 bg-white rounded-lg shadow-md text-sm flex flex-col gap-6">
       <div className="h-20 relative">
         <Image
-          src={user.cover || "/noCover.png"}
+          src={userData.cover || "/noCover.png"}
           alt=""
           fill
           className="rounded-md object-cover"
         />
         <Image
-          src={user.avatar || "/noAvatar.png"}
+          src={userData.avatar || "/noAvatar.png"}
           alt=""
           width={48}
           height={48}
@@ -42,9 +80,9 @@ const ProfileCard = async () => {
       </div>
       <div className="h-20 flex flex-col gap-2 items-center">
         <span className="font-semibold">
-          {user.name && user.surname
-            ? user.name + " " + user.surname
-            : user.username}
+          {userData.name && userData.surname
+            ? userData.name + " " + userData.surname
+            : userData.username}
         </span>
         <div className="flex items-center gap-4">
           <div className="flex">
@@ -71,10 +109,10 @@ const ProfileCard = async () => {
             />
           </div>
           <span className="text-xs text-gray-500">
-            {user._count.followers} Followers
+            {userData._count.followers} Followers
           </span>
         </div>
-        <Link href={`/profile/${user.username}`}>
+        <Link href={`/profile/${userData.username}`}>
           <button className="bg-blue-500 text-white text-xs p-2 rounded-md">
             My Profile
           </button>

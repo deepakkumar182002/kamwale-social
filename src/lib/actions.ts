@@ -1,14 +1,14 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import prisma from "./client";
+import prisma, { getUserIdFromClerk } from "./client";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
 // Utility function to ensure user exists in database
 export const ensureUserExists = async (userId: string) => {
   let user = await prisma.user.findUnique({
-    where: { id: userId }
+    where: { clerkId: userId }
   });
 
   if (!user) {
@@ -20,7 +20,7 @@ export const ensureUserExists = async (userId: string) => {
     if (clerkUser) {
       user = await prisma.user.create({
         data: {
-          id: userId,
+          clerkId: userId,
           username: clerkUser.username || `user_${userId.slice(-8)}`,
           avatar: clerkUser.imageUrl || "/noAvatar.png",
           cover: "/noCover.png",
@@ -38,17 +38,21 @@ export const ensureUserExists = async (userId: string) => {
 };
 
 export const switchFollow = async (userId: string) => {
-  const { userId: currentUserId } = auth();
+  const { userId: currentClerkUserId } = auth();
 
-  if (!currentUserId) {
+  if (!currentClerkUserId) {
     throw new Error("User is not authenticated!");
   }
 
   try {
-    // Ensure both users exist
-    await ensureUserExists(currentUserId);
-    await ensureUserExists(userId);
+    // Get MongoDB ObjectId from Clerk ID
+    const currentUserId = await getUserIdFromClerk(currentClerkUserId);
+    
+    if (!currentUserId) {
+      throw new Error("User not found in database");
+    }
 
+    // Ensure both users exist (userId parameter is already MongoDB ObjectId from UI)
     const existingFollow = await prisma.follow.findFirst({
       where: {
         followerId: currentUserId,
@@ -94,13 +98,20 @@ export const switchFollow = async (userId: string) => {
 };
 
 export const switchBlock = async (userId: string) => {
-  const { userId: currentUserId } = auth();
+  const { userId: currentClerkUserId } = auth();
 
-  if (!currentUserId) {
+  if (!currentClerkUserId) {
     throw new Error("User is not Authenticated!!");
   }
 
   try {
+    // Get MongoDB ObjectId from Clerk ID
+    const currentUserId = await getUserIdFromClerk(currentClerkUserId);
+    
+    if (!currentUserId) {
+      throw new Error("User not found in database");
+    }
+
     const existingBlock = await prisma.block.findFirst({
       where: {
         blockerId: currentUserId,
@@ -129,13 +140,20 @@ export const switchBlock = async (userId: string) => {
 };
 
 export const acceptFollowRequest = async (userId: string) => {
-  const { userId: currentUserId } = auth();
+  const { userId: currentClerkUserId } = auth();
 
-  if (!currentUserId) {
+  if (!currentClerkUserId) {
     throw new Error("User is not Authenticated!!");
   }
 
   try {
+    // Get MongoDB ObjectId from Clerk ID
+    const currentUserId = await getUserIdFromClerk(currentClerkUserId);
+    
+    if (!currentUserId) {
+      throw new Error("User not found in database");
+    }
+
     const existingFollowRequest = await prisma.followRequest.findFirst({
       where: {
         senderId: userId,
@@ -164,13 +182,20 @@ export const acceptFollowRequest = async (userId: string) => {
 };
 
 export const declineFollowRequest = async (userId: string) => {
-  const { userId: currentUserId } = auth();
+  const { userId: currentClerkUserId } = auth();
 
-  if (!currentUserId) {
+  if (!currentClerkUserId) {
     throw new Error("User is not Authenticated!!");
   }
 
   try {
+    // Get MongoDB ObjectId from Clerk ID
+    const currentUserId = await getUserIdFromClerk(currentClerkUserId);
+    
+    if (!currentUserId) {
+      throw new Error("User not found in database");
+    }
+
     const existingFollowRequest = await prisma.followRequest.findFirst({
       where: {
         senderId: userId,
@@ -220,13 +245,20 @@ export const updateProfile = async (
     return { success: false, error: true };
   }
 
-  const { userId } = auth();
+  const { userId: clerkUserId } = auth();
 
-  if (!userId) {
+  if (!clerkUserId) {
     return { success: false, error: true };
   }
 
   try {
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) {
+      return { success: false, error: true };
+    }
+
     await prisma.user.update({
       where: {
         id: userId,
@@ -241,13 +273,15 @@ export const updateProfile = async (
 };
 
 export const switchLike = async (postId: string) => {
-  const { userId } = auth();
+  const { userId: clerkUserId } = auth();
 
-  if (!userId) throw new Error("User is not authenticated!");
+  if (!clerkUserId) throw new Error("User is not authenticated!");
 
   try {
-    // Ensure user exists
-    await ensureUserExists(userId);
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) throw new Error("User not found!");
     
     const existingLike = await prisma.like.findFirst({
       where: {
@@ -277,13 +311,15 @@ export const switchLike = async (postId: string) => {
 };
 
 export const addComment = async (postId: string, desc: string) => {
-  const { userId } = auth();
+  const { userId: clerkUserId } = auth();
 
-  if (!userId) throw new Error("User is not authenticated!");
+  if (!clerkUserId) throw new Error("User is not authenticated!");
 
   try {
-    // Ensure user exists
-    await ensureUserExists(userId);
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) throw new Error("User not found!");
     
     const createdComment = await prisma.comment.create({
       data: {
@@ -324,12 +360,12 @@ export const addPost = async (formData: FormData, img: string) => {
     console.log("Creating post with:", { desc: validatedDesc.data, userId, img });
     
     // Ensure user exists in database
-    await ensureUserExists(userId);
+    const user = await ensureUserExists(userId);
     
     await prisma.post.create({
       data: {
         desc: validatedDesc.data,
-        userId,
+        userId: user.id,
         img: img || null,
       },
     });
@@ -344,11 +380,16 @@ export const addPost = async (formData: FormData, img: string) => {
 };
 
 export const addStory = async (img: string) => {
-  const { userId } = auth();
+  const { userId: clerkUserId } = auth();
 
-  if (!userId) throw new Error("User is not authenticated!");
+  if (!clerkUserId) throw new Error("User is not authenticated!");
 
   try {
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) throw new Error("User not found!");
+
     const existingStory = await prisma.story.findFirst({
       where: {
         userId,
@@ -380,11 +421,16 @@ export const addStory = async (img: string) => {
 };
 
 export const deletePost = async (postId: string) => {
-  const { userId } = auth();
+  const { userId: clerkUserId } = auth();
 
-  if (!userId) throw new Error("User is not authenticated!");
+  if (!clerkUserId) throw new Error("User is not authenticated!");
 
   try {
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) throw new Error("User not found!");
+
     await prisma.post.delete({
       where: {
         id: postId,

@@ -2,9 +2,22 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 import { NextResponse } from "next/server";
 
+// Ensure this route is treated as dynamic
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST() {
   try {
-    const { userId } = auth();
+    // Handle case where auth might not be available during build
+    let authResult;
+    try {
+      authResult = auth();
+    } catch (error) {
+      console.error("Auth error during build:", error);
+      return NextResponse.json({ error: "Authentication unavailable" }, { status: 503 });
+    }
+
+    const { userId } = authResult;
     
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -12,7 +25,7 @@ export async function POST() {
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { clerkId: userId }
     });
 
     if (existingUser) {
@@ -29,7 +42,7 @@ export async function POST() {
     // Create new user
     const newUser = await prisma.user.create({
       data: {
-        id: userId,
+        clerkId: userId,
         username: clerkUser.username || `user_${userId.slice(-8)}`,
         avatar: clerkUser.imageUrl || "/noAvatar.png",
         cover: "/noCover.png",

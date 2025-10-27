@@ -1,12 +1,12 @@
+import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/client";
 
 // Ensure this route is treated as dynamic
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-export async function POST(req: NextRequest) {
+export async function GET() {
   try {
     // Handle case where auth might not be available during build
     let authResult;
@@ -18,23 +18,31 @@ export async function POST(req: NextRequest) {
     }
 
     const { userId } = authResult;
+
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { isOnline } = await req.json();
-
-    await prisma.user.update({
-      where: { clerkId: userId },
-      data: {
-        isOnline,
-        lastSeen: new Date(),
+    const user = await prisma.user.findFirst({
+      where: {
+        clerkId: userId,
+      },
+      include: {
+        _count: {
+          select: {
+            followers: true,
+          },
+        },
       },
     });
 
-    return NextResponse.json({ success: true });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(user);
   } catch (error) {
-    console.error("Error updating user status:", error);
+    console.error("Error fetching user profile:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

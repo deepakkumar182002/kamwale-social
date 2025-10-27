@@ -30,6 +30,7 @@ const CommentList = ({
       postId: postId,
       user: {
         id: user.id,
+        clerkId: user.id,
         username: "Sending Please Wait...",
         avatar: user.imageUrl || "/noAvatar.png",
         cover: "",
