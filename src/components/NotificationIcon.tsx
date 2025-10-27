@@ -9,16 +9,21 @@ interface Notification {
   content: string;
   read: boolean;
   createdAt: string;
-  sender: {
+  chatId: string | null;
+  fromUser: {
     id: string;
     username: string;
     avatar: string | null;
     name: string | null;
     surname: string | null;
-  };
+  } | null;
 }
 
-const NotificationIcon = () => {
+interface NotificationIconProps {
+  onOpenChat?: (userId: string) => void;
+}
+
+const NotificationIcon = ({ onOpenChat }: NotificationIconProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -76,6 +81,16 @@ const NotificationIcon = () => {
     }
   };
 
+  const handleNotificationClick = (notification: Notification) => {
+    // If it's a message notification and has a fromUser, open chat with that user
+    if (notification.type === "message" && notification.fromUser && onOpenChat) {
+      onOpenChat(notification.fromUser.id);
+      setShowDropdown(false); // Close dropdown after clicking
+    }
+    // For other notification types (like follow, like, comment), you can add more logic here
+    // For example, redirect to the relevant post or profile
+  };
+
   const handleToggleDropdown = () => {
     setShowDropdown(!showDropdown);
     if (!showDropdown && unreadCount > 0) {
@@ -128,14 +143,15 @@ const NotificationIcon = () => {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-3 border-b border-gray-50 hover:bg-gray-50 ${
+                  className={`p-3 border-b border-gray-50 hover:bg-gray-100 cursor-pointer transition-colors ${
                     !notification.read ? "bg-blue-50" : ""
                   }`}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start gap-3">
                     <Image
-                      src={notification.sender.avatar || "/noAvatar.png"}
-                      alt={notification.sender.username}
+                      src={notification.fromUser?.avatar || "/noAvatar.png"}
+                      alt={notification.fromUser?.username || "User"}
                       width={32}
                       height={32}
                       className="rounded-full object-cover"
@@ -143,7 +159,7 @@ const NotificationIcon = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">
                         <span className="font-medium">
-                          {notification.sender.name || notification.sender.username}
+                          {notification.fromUser?.name || notification.fromUser?.username || "Someone"}
                         </span>{" "}
                         {notification.content}
                       </p>

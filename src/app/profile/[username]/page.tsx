@@ -1,77 +1,110 @@
 
+"use client";
+
 import Feed from "@/components/feed/Feed";
 import LeftMenu from "@/components/leftMenu/LeftMenu";
 import RightMenu from "@/components/rightMenu/RightMenu";
 import FollowButton from "@/components/FollowButton";
 import MessageButton from "@/components/MessageButton";
-import prisma from "@/lib/client";
-import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 
-const ProfilePage = async ({ params }: { params: { username: string } }) => {
-  const username = params.username;
-  
-  // Debug: Log the username being searched
-  console.log("Looking for username:", username);
+interface UserProfile {
+  id: string;
+  clerkId: string;
+  username: string;
+  avatar: string | null;
+  cover: string | null;
+  name: string | null;
+  surname: string | null;
+  description: string | null;
+  city: string | null;
+  school: string | null;
+  work: string | null;
+  website: string | null;
+  createdAt: Date;
+  lastSeen: Date;
+  isOnline: boolean;
+  _count: {
+    followers: number;
+    followings: number;
+    posts: number;
+  };
+}
 
-  const user = await prisma.user.findFirst({
-    where: {
-      username,
-    },
-    include: {
-      _count: {
-        select: {
-          followers: true,
-          followings: true,
-          posts: true,
-        },
-      },
-    },
-  });
+interface ProfileData {
+  user: UserProfile;
+  isBlocked: boolean;
+  isFollowing: boolean;
+  isFollowRequestSent: boolean;
+  currentUserId: string | null;
+}
 
-  // Debug: Log the user found
-  console.log("User found:", user ? user.username : "No user found");
+const ProfilePage = ({ params }: { params: { username: string } }) => {
+  const { user: currentUser } = useUser();
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!user) {
-    console.log("User not found, returning 404");
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch(`/api/users/profile/${params.username}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError("User not found");
+            return;
+          }
+          throw new Error("Failed to fetch profile");
+        }
+
+        const data = await response.json();
+        setProfileData(data);
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+        setError("Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [params.username]);
+
+  if (loading) {
+    return (
+      <div className="flex gap-6 pt-6">
+        <div className="hidden xl:block w-[20%]">
+          <LeftMenu type="profile" />
+        </div>
+        <div className="w-full lg:w-[70%] xl:w-[50%]">
+          <div className="animate-pulse">
+            <div className="w-full h-64 bg-gray-300 rounded-md mb-6"></div>
+            <div className="h-6 bg-gray-300 rounded mb-4 mx-auto w-48"></div>
+            <div className="flex justify-center gap-12 mb-4">
+              <div className="h-16 w-16 bg-gray-300 rounded"></div>
+              <div className="h-16 w-16 bg-gray-300 rounded"></div>
+              <div className="h-16 w-16 bg-gray-300 rounded"></div>
+            </div>
+          </div>
+        </div>
+        <div className="hidden lg:block w-[30%]">
+          <div className="animate-pulse">
+            <div className="h-32 bg-gray-300 rounded mb-4"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !profileData) {
     return notFound();
   }
 
-  const { userId: currentUserId } = auth();
-
-  let isBlocked = false;
-  let isFollowing = false;
-  let isFollowRequestSent = false;
-
-  if (currentUserId) {
-    const [blockRelation, followRelation, followRequest] = await Promise.all([
-      prisma.block.findFirst({
-        where: {
-          blockerId: user.id,
-          blockedId: currentUserId,
-        },
-      }),
-      prisma.follower.findFirst({
-        where: {
-          followerId: currentUserId,
-          followingId: user.id,
-        },
-      }),
-      prisma.followRequest.findFirst({
-        where: {
-          senderId: currentUserId,
-          receiverId: user.id,
-        },
-      }),
-    ]);
-
-    isBlocked = !!blockRelation;
-    isFollowing = !!followRelation;
-    isFollowRequestSent = !!followRequest;
-  }
-
-  if (isBlocked) return notFound();
+  const { user, isBlocked, isFollowing, isFollowRequestSent, currentUserId } = profileData;
 
   return (
     <div className="flex gap-6 pt-6">

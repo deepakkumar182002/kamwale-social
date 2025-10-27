@@ -1,15 +1,12 @@
+import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
 import prisma, { getUserIdFromClerk } from "@/lib/client";
 
 // Ensure this route is treated as dynamic
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { chatId: string } }
-) {
+export async function GET() {
   try {
     // Handle case where auth might not be available during build
     let authResult;
@@ -21,6 +18,7 @@ export async function POST(
     }
 
     const { userId: clerkUserId } = authResult;
+
     if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -32,27 +30,30 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { chatId } = params;
-
-    if (!chatId) {
-      return NextResponse.json({ error: "Chat ID is required" }, { status: 400 });
-    }
-
-    // Mark all messages in this chat as read for this user
-    await prisma.message.updateMany({
+    // Get current user's full profile
+    const user = await prisma.user.findUnique({
       where: {
-        chatId,
-        senderId: { not: userId }, // Don't mark own messages as read
-        readAt: null,
+        id: userId,
       },
-      data: {
-        readAt: new Date(),
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        surname: true,
+        avatar: true,
+        clerkId: true,
+        isOnline: true,
+        lastSeen: true,
       },
     });
 
-    return NextResponse.json({ success: true });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(user);
   } catch (error) {
-    console.error("Error marking messages as read:", error);
+    console.error("Error fetching current user:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

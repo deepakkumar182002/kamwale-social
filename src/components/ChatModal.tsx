@@ -48,6 +48,7 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
   const [following, setFollowing] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [currentUserMongoId, setCurrentUserMongoId] = useState<string | null>(null);
   const { user } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -122,13 +123,27 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
       setLoading(false);
     }
   }, []);
+  
+  // Fetch current user's MongoDB ID
+  const fetchCurrentUserMongoId = useCallback(async () => {
+    try {
+      const response = await fetch("/api/users/current");
+      if (response.ok) {
+        const userData = await response.json();
+        setCurrentUserMongoId(userData.id);
+      }
+    } catch (error) {
+      console.error("Error fetching current user ID:", error);
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
+      fetchCurrentUserMongoId();
       fetchFollowing();
       fetchChats();
     }
-  }, [isOpen, fetchFollowing, fetchChats]);
+  }, [isOpen, fetchFollowing, fetchChats, fetchCurrentUserMongoId]);
 
   const startChatWithUser = useCallback(async (targetUser: User) => {
     try {
@@ -137,12 +152,24 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userId: targetUser.id }),
+        body: JSON.stringify({ otherUserId: targetUser.id }),
       });
 
       if (response.ok) {
         const chat = await response.json();
-        setSelectedChat(chat);
+        
+        // Fetch full messages for this chat
+        const messagesResponse = await fetch(`/api/chats/${chat.id}/messages`);
+        if (messagesResponse.ok) {
+          const messages = await messagesResponse.json();
+          setSelectedChat({
+            ...chat,
+            messages: messages,
+          });
+        } else {
+          setSelectedChat(chat);
+        }
+        
         await fetchChats();
       }
     } catch (error) {
@@ -268,12 +295,27 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
   };
 
   const handleChatSelect = async (chat: Chat) => {
-    setSelectedChat(chat);
-    await markMessagesAsRead(chat.id);
+    try {
+      // Fetch full messages for this chat
+      const response = await fetch(`/api/chats/${chat.id}/messages`);
+      if (response.ok) {
+        const messages = await response.json();
+        setSelectedChat({
+          ...chat,
+          messages: messages,
+        });
+        await markMessagesAsRead(chat.id);
+      }
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      // Fallback to chat with existing messages
+      setSelectedChat(chat);
+      await markMessagesAsRead(chat.id);
+    }
   };
 
   const getOtherParticipant = (chat: Chat) => {
-    return chat.participants.find((p) => p.user.id !== user?.id)?.user;
+    return chat.participants.find((p) => p.user.id !== currentUserMongoId)?.user;
   };
 
   const formatTime = (dateString: string) => {
@@ -293,9 +335,11 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
 
   const hasUnreadMessages = (chat: Chat) => {
     if (!user) return false;
-    return chat.messages.some(
-      (msg) => msg.senderId !== user.id && !msg.readAt
-    );
+    // Check if last message is unread and not sent by current user
+    if (chat.lastMessage) {
+      return chat.lastMessage.senderId !== user.id && !chat.lastMessage.readAt;
+    }
+    return false;
   };
 
   if (!isOpen) return null;
@@ -454,12 +498,12 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
                   <div
                     key={msg.id}
                     className={`flex ${
-                      msg.senderId === user?.id ? "justify-end" : "justify-start"
+                      msg.senderId === currentUserMongoId ? "justify-end" : "justify-start"
                     }`}
                   >
                     <div
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                        msg.senderId === user?.id
+                        msg.senderId === currentUserMongoId
                           ? "bg-blue-500 text-white"
                           : "bg-gray-200 text-gray-800"
                       }`}
@@ -484,7 +528,7 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
                         <p className="text-xs opacity-70">
                           {formatTime(msg.createdAt)}
                         </p>
-                        {msg.senderId === user?.id && (
+                        {msg.senderId === currentUserMongoId && (
                           <span className="text-xs opacity-70 ml-2">
                             {msg.readAt ? "✓✓" : "✓"}
                           </span>

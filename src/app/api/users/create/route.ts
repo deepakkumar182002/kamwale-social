@@ -25,7 +25,7 @@ export async function POST() {
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { clerkId: userId }
     });
 
     if (existingUser) {
@@ -42,7 +42,7 @@ export async function POST() {
     // Create new user
     const newUser = await prisma.user.create({
       data: {
-        id: userId,
+        clerkId: userId,
         username: clerkUser.username || `user_${userId.slice(-8)}`,
         avatar: clerkUser.imageUrl || "/noAvatar.png",
         cover: "/noCover.png",

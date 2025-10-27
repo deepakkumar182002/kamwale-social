@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import prisma from "@/lib/client";
+import prisma, { getUserIdFromClerk } from "@/lib/client";
 
 // Ensure this route is treated as dynamic
 export const dynamic = 'force-dynamic';
@@ -20,10 +20,17 @@ export async function GET(
       return NextResponse.json({ error: "Authentication unavailable" }, { status: 503 });
     }
 
-    const { userId } = authResult;
+    const { userId: clerkUserId } = authResult;
 
-    if (!userId) {
+    if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const { chatId } = params;
@@ -97,10 +104,17 @@ export async function POST(
       return NextResponse.json({ error: "Authentication unavailable" }, { status: 503 });
     }
 
-    const { userId } = authResult;
+    const { userId: clerkUserId } = authResult;
 
-    if (!userId) {
+    if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const { chatId } = params;

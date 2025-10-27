@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import prisma from "@/lib/client";
+import prisma, { getUserIdFromClerk } from "@/lib/client";
 
 // Ensure this route is treated as dynamic
 export const dynamic = 'force-dynamic';
@@ -17,18 +17,25 @@ export async function GET() {
       return NextResponse.json({ error: "Authentication unavailable" }, { status: 503 });
     }
 
-    const { userId } = authResult;
+    const { userId: clerkUserId } = authResult;
 
-    if (!userId) {
+    if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const notifications = await prisma.notification.findMany({
       where: {
-        recipientId: userId,
+        userId: userId,
       },
       include: {
-        sender: {
+        fromUser: {
           select: {
             id: true,
             username: true,
@@ -55,10 +62,17 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId: clerkUserId } = await auth();
 
-    if (!userId) {
+    if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const { chatId, type, messageType = "text" } = await request.json();
@@ -101,12 +115,12 @@ export async function POST(request: NextRequest) {
       data: {
         type,
         content,
-        senderId: userId,
-        recipientId: recipient.userId,
-        relatedId: chatId,
+        fromUserId: userId,
+        userId: recipient.userId,
+        chatId: chatId,
       },
       include: {
-        sender: {
+        fromUser: {
           select: {
             id: true,
             username: true,
@@ -130,16 +144,23 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH() {
   try {
-    const { userId } = await auth();
+    const { userId: clerkUserId } = await auth();
 
-    if (!userId) {
+    if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Mark all notifications as read for this user
     await prisma.notification.updateMany({
       where: {
-        recipientId: userId,
+        userId: userId,
         read: false,
       },
       data: {

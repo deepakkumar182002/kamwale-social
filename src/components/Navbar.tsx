@@ -17,6 +17,12 @@ import {
 
 const Navbar = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [initialUserId, setInitialUserId] = useState<string | undefined>(undefined);
+
+  const handleOpenChat = (userId?: string) => {
+    setInitialUserId(userId);
+    setIsChatOpen(true);
+  };
 
   return (
     <div className="h-24 flex items-center justify-between">
@@ -77,11 +83,11 @@ const Navbar = () => {
             </div>
             <div 
               className="cursor-pointer hover:opacity-75 transition-opacity"
-              onClick={() => setIsChatOpen(true)}
+              onClick={() => handleOpenChat()}
             >
               <Image src="/messages.png" alt="Messages" width={20} height={20} />
             </div>
-            <NotificationIcon />
+            <NotificationIcon onOpenChat={handleOpenChat} />
             <UserButton />
           </SignedIn>
           <SignedOut>
@@ -95,7 +101,14 @@ const Navbar = () => {
       </div>
 
       {/* Chat Modal */}
-      <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <ChatModal 
+        isOpen={isChatOpen} 
+        onClose={() => {
+          setIsChatOpen(false);
+          setInitialUserId(undefined);
+        }} 
+        initialUserId={initialUserId}
+      />
     </div>
   );
 };

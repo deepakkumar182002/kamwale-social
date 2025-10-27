@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^5.7.5",
-    "@prisma/client": "^5.15.0",
+    "@prisma/client": "^5.22.0",
+    "@supabase/supabase-js": "^2.57.2",
     "babel-plugin-react-compiler": "^0.0.0-experimental-938cd9a-20240601",
     "cloudinary": "^2.7.0",
     "date-fns": "^4.1.0",
+    "mongodb": "^6.20.0",
     "next": "15.0.0-rc.0",
     "next-cloudinary": "^6.16.0",
     "prisma": "^5.22.0",
