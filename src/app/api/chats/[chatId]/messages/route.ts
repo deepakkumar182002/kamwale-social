@@ -124,7 +124,14 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { content, type = "text", imageUrl } = await request.json();
+    const { content, type = "text" } = await request.json();
+
+    if (!content || !chatId) {
+      return NextResponse.json(
+        { error: "Content and chat ID are required" },
+        { status: 400 }
+      );
+    }
 
     // Verify the user is a participant in this chat and get the other participant
     const chat = await prisma.chat.findUnique({
@@ -157,9 +164,8 @@ export async function POST(
     // Create the message
     const message = await prisma.message.create({
       data: {
-        content: content || "",
+        content,
         type,
-        imageUrl,
         chatId: chatId,
         senderId: userId,
         receiverId: otherParticipant.userId,
