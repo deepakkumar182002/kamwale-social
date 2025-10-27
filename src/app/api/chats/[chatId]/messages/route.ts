@@ -5,12 +5,19 @@ import prisma, { getUserIdFromClerk } from "@/lib/client";
 // Ensure this route is treated as dynamic
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const dynamicParams = true;
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
+    const { chatId } = await params;
+    
+    if (!chatId) {
+      return NextResponse.json({ error: "Chat ID is required" }, { status: 400 });
+    }
+
     // Handle case where auth might not be available during build
     let authResult;
     try {
@@ -28,12 +35,6 @@ export async function GET(
 
     // Get MongoDB ObjectId from Clerk ID
     const userId = await getUserIdFromClerk(clerkUserId);
-    
-    if (!userId) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const { chatId } = await params;
 
     if (!chatId) {
       return NextResponse.json({ error: "Chat ID is required" }, { status: 400 });
@@ -95,6 +96,12 @@ export async function POST(
   { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
+    const { chatId } = await params;
+    
+    if (!chatId) {
+      return NextResponse.json({ error: "Chat ID is required" }, { status: 400 });
+    }
+
     // Handle case where auth might not be available during build
     let authResult;
     try {
@@ -117,15 +124,7 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { chatId } = await params;
     const { content, type = "text", imageUrl } = await request.json();
-
-    if ((!content && !imageUrl) || !chatId) {
-      return NextResponse.json(
-        { error: "Content or image and chat ID are required" },
-        { status: 400 }
-      );
-    }
 
     // Verify the user is a participant in this chat and get the other participant
     const chat = await prisma.chat.findUnique({
