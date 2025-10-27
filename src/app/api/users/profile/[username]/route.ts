@@ -7,10 +7,10 @@ export const runtime = 'nodejs';
 
 export const GET = async (
   req: NextRequest,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) => {
   try {
-    const username = params.username;
+    const { username } = await params;
 
     if (!username) {
       return NextResponse.json(

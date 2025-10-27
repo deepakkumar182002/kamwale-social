@@ -42,16 +42,27 @@ interface ProfileData {
   currentUserId: string | null;
 }
 
-const ProfilePage = ({ params }: { params: { username: string } }) => {
+const ProfilePage = ({ params }: { params: Promise<{ username: string }> }) => {
   const { user: currentUser } = useUser();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [username, setUsername] = useState<string>("");
 
   useEffect(() => {
+    const initParams = async () => {
+      const resolvedParams = await params;
+      setUsername(resolvedParams.username);
+    };
+    initParams();
+  }, [params]);
+
+  useEffect(() => {
+    if (!username) return;
+    
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`/api/users/profile/${params.username}`);
+        const response = await fetch(`/api/users/profile/${username}`);
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -72,7 +83,7 @@ const ProfilePage = ({ params }: { params: { username: string } }) => {
     };
 
     fetchProfile();
-  }, [params.username]);
+  }, [username]);
 
   if (loading) {
     return (

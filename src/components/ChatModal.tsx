@@ -20,7 +20,6 @@ interface Message {
   content: string;
   senderId: string;
   createdAt: string;
-  imageUrl?: string;
   type: string;
   readAt?: string;
   sender: User;
@@ -47,10 +46,8 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
   const [message, setMessage] = useState("");
   const [following, setFollowing] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [currentUserMongoId, setCurrentUserMongoId] = useState<string | null>(null);
   const { user } = useUser();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom of messages
@@ -185,61 +182,6 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
       }
     }
   }, [initialUserId, following, startChatWithUser]);
-
-  const handleImageUpload = async (file: File) => {
-    if (!file || !selectedChat) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "");
-
-    try {
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Send image message
-        const messageResponse = await fetch(`/api/chats/${selectedChat.id}/messages`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            content: "",
-            type: "image",
-            imageUrl: data.secure_url,
-          }),
-        });
-
-        if (messageResponse.ok) {
-          const newMessage = await messageResponse.json();
-          setSelectedChat((prev) => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              messages: [...prev.messages, newMessage],
-            };
-          });
-          
-          // Create notification for other participants
-          await createNotification(selectedChat.id, "image");
-          await fetchChats();
-        }
-      }
-    } catch (error) {
-      console.error("Error uploading image:", error);
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const createNotification = async (chatId: string, messageType: string = "text") => {
     try {
@@ -508,21 +450,7 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
                           : "bg-gray-200 text-gray-800"
                       }`}
                     >
-                      {msg.type === "image" && msg.imageUrl ? (
-                        <div className="mb-2">
-                          <Image
-                            src={msg.imageUrl}
-                            alt="Shared image"
-                            width={200}
-                            height={200}
-                            className="rounded object-cover"
-                          />
-                        </div>
-                      ) : null}
-                      
-                      {msg.content && (
-                        <p className="text-sm">{msg.content}</p>
-                      )}
+                      <p className="text-sm">{msg.content}</p>
                       
                       <div className="flex items-center justify-between mt-1">
                         <p className="text-xs opacity-70">
@@ -544,47 +472,22 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
               <div className="p-4 border-t border-gray-200">
                 <div className="flex gap-2">
                   <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file);
-                    }}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="p-2 text-blue-500 hover:bg-gray-100 rounded-full disabled:opacity-50"
-                    title="Upload image"
-                  >
-                    📷
-                  </button>
-                  
-                  <input
                     type="text"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                     placeholder="Type a message..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-blue-500"
-                    disabled={uploading}
                   />
                   
                   <button
                     onClick={sendMessage}
-                    disabled={!message.trim() || uploading}
+                    disabled={!message.trim()}
                     className="px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Send
                   </button>
                 </div>
-                
-                {uploading && (
-                  <p className="text-sm text-gray-500 mt-2">Uploading image...</p>
-                )}
               </div>
             </>
           ) : (
