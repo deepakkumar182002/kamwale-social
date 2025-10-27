@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { chatId: string } }
+  { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
     // Handle case where auth might not be available during build
@@ -33,7 +33,7 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { chatId } = params;
+    const { chatId } = await params;
 
     if (!chatId) {
       return NextResponse.json({ error: "Chat ID is required" }, { status: 400 });
@@ -92,7 +92,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { chatId: string } }
+  { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
     // Handle case where auth might not be available during build
@@ -117,7 +117,7 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { chatId } = params;
+    const { chatId } = await params;
     const { content, type = "text", imageUrl } = await request.json();
 
     if ((!content && !imageUrl) || !chatId) {
