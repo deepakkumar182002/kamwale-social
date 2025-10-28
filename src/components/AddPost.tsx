@@ -7,7 +7,13 @@ import { useState } from "react";
 import AddPostButton from "./AddPostButton";
 import { addPost } from "@/lib/actions";
 
-const AddPost = ({ onNewPost }: { onNewPost?: (post: any) => void }) => {
+const AddPost = ({ 
+  onNewPost, 
+  onPostCreated 
+}: { 
+  onNewPost?: (post: any) => void;
+  onPostCreated?: () => void;
+}) => {
   const { user, isLoaded } = useUser();
   const [desc, setDesc] = useState("");
   const [img, setImg] = useState<any>();
@@ -55,7 +61,8 @@ const AddPost = ({ onNewPost }: { onNewPost?: (post: any) => void }) => {
 
     try {
       await addPost(formData, imgValue?.secure_url || "");
-      // Post created successfully - feed will refresh and show real post
+      // Post created successfully - trigger feed refresh
+      onPostCreated?.();
     } catch (error) {
       console.error("Error submitting post:", error);
       alert("Failed to post. Please try again.");

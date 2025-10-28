@@ -9,9 +9,15 @@ import RightMenu from "@/components/rightMenu/RightMenu";
 
 const Homepage = () => {
   const [optimisticPost, setOptimisticPost] = useState<any>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleNewPost = useCallback((post: any) => {
     setOptimisticPost(post);
+  }, []);
+
+  const handlePostCreated = useCallback(() => {
+    // Trigger feed refresh after post is successfully created
+    setRefreshTrigger(prev => prev + 1);
   }, []);
 
   const handlePostsLoaded = useCallback(() => {
@@ -27,8 +33,12 @@ const Homepage = () => {
       <div className="w-full lg:w-[70%] xl:w-[50%]">
         <div className="flex flex-col gap-6">
           <Stories />
-          <AddPost onNewPost={handleNewPost} />
-          <Feed onPostsLoaded={handlePostsLoaded} optimisticPost={optimisticPost} />
+          <AddPost onNewPost={handleNewPost} onPostCreated={handlePostCreated} />
+          <Feed 
+            onPostsLoaded={handlePostsLoaded} 
+            optimisticPost={optimisticPost}
+            refreshTrigger={refreshTrigger}
+          />
         </div>
       </div>
       <div className="hidden lg:block w-[30%]">

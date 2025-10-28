@@ -7,11 +7,13 @@ import Post from "./Post";
 const Feed = ({ 
   username, 
   onPostsLoaded,
-  optimisticPost 
+  optimisticPost,
+  refreshTrigger 
 }: { 
   username?: string;
   onPostsLoaded?: (posts: any[]) => void;
   optimisticPost?: any;
+  refreshTrigger?: number;
 }) => {
   const { user, isLoaded } = useUser();
   const [posts, setPosts] = useState<any[]>([]);
@@ -48,7 +50,7 @@ const Feed = ({
     if (isLoaded) {
       fetchPosts();
     }
-  }, [username, isLoaded, onPostsLoaded]);
+  }, [username, isLoaded, onPostsLoaded, refreshTrigger]);
 
   if (!isLoaded || loading) {
     return (
