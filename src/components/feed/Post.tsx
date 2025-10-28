@@ -52,14 +52,18 @@ const Post = ({ post }: { post: FeedPostType }) => {
   }, [user, post.user.id]);
 
   const userId = user?.id;
+  const isOptimistic = (post as any)._isOptimistic;
   
   return (
-    <div className="flex flex-col gap-4">
+    <div className={`flex flex-col gap-4 ${isOptimistic ? 'opacity-80 animate-pulse' : ''}`}>
       {/* USER */}
       <div className="flex items-center justify-between">
         <ClickableUserInfo user={post.user} />
         <div className="flex items-center gap-2">
-          {userId !== post.user.id && userId && !loading && (
+          {isOptimistic && (
+            <span className="text-xs text-gray-500 italic">Posting...</span>
+          )}
+          {userId !== post.user.id && userId && !loading && !isOptimistic && (
             <FollowButton
               userId={post.user.id}
               isUserBlocked={followStatus.isBlocked}
@@ -67,7 +71,7 @@ const Post = ({ post }: { post: FeedPostType }) => {
               isFollowingSent={followStatus.isFollowRequestSent}
             />
           )}
-          {userId === post.user.id && <PostInfo postId={post.id} />}
+          {userId === post.user.id && !isOptimistic && <PostInfo postId={post.id} />}
         </div>
       </div>
       {/* DESC */}
@@ -85,16 +89,20 @@ const Post = ({ post }: { post: FeedPostType }) => {
         <p>{post.desc}</p>
       </div>
       {/* INTERACTION */}
-      <Suspense fallback="Loading...">
-        <PostInteraction
-          postId={post.id}
-          likes={post.likes.map((like) => like.userId)}
-          commentNumber={post._count.comments}
-        />
-      </Suspense>
-      <Suspense fallback="Loading...">
-        <Comments postId={post.id} />
-      </Suspense>
+      {!isOptimistic && (
+        <>
+          <Suspense fallback="Loading...">
+            <PostInteraction
+              postId={post.id}
+              likes={post.likes.map((like) => like.userId)}
+              commentNumber={post._count.comments}
+            />
+          </Suspense>
+          <Suspense fallback="Loading...">
+            <Comments postId={post.id} />
+          </Suspense>
+        </>
+      )}
     </div>
   );
 };
