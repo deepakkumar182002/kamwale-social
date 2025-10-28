@@ -352,20 +352,24 @@ export const addPost = async (formData: FormData, img: string) => {
     throw new Error("Description must be between 1 and 255 characters");
   }
   
-  const { userId } = auth();
+  const { userId: clerkUserId } = auth();
 
-  if (!userId) throw new Error("User is not authenticated!");
+  if (!clerkUserId) throw new Error("User is not authenticated!");
 
   try {
-    console.log("Creating post with:", { desc: validatedDesc.data, userId, img });
+    console.log("Creating post with:", { desc: validatedDesc.data, clerkUserId, img });
     
-    // Ensure user exists in database
-    const user = await ensureUserExists(userId);
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) {
+      throw new Error("User not found in database");
+    }
     
     await prisma.post.create({
       data: {
         desc: validatedDesc.data,
-        userId: user.id,
+        userId: userId,
         img: img || null,
       },
     });

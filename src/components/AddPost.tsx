@@ -7,7 +7,13 @@ import { useState } from "react";
 import AddPostButton from "./AddPostButton";
 import { addPost } from "@/lib/actions";
 
-const AddPost = () => {
+const AddPost = ({ 
+  onNewPost, 
+  onPostCreated 
+}: { 
+  onNewPost?: (post: any) => void;
+  onPostCreated?: () => void;
+}) => {
   const { user, isLoaded } = useUser();
   const [desc, setDesc] = useState("");
   const [img, setImg] = useState<any>();
@@ -21,14 +27,50 @@ const AddPost = () => {
     if (isSubmitting) return;
     
     setIsSubmitting(true);
+    
+    // Create optimistic post immediately
+    const optimisticPost = {
+      id: `temp-${Date.now()}`,
+      desc: desc,
+      img: img?.secure_url || null,
+      createdAt: new Date().toISOString(),
+      user: {
+        id: user?.id || "",
+        username: user?.username || "",
+        avatar: user?.imageUrl || "/noAvatar.png",
+        name: user?.firstName || "",
+        surname: user?.lastName || "",
+      },
+      _count: {
+        likes: 0,
+        comments: 0,
+      },
+      likes: [],
+      comments: [],
+      _isOptimistic: true,
+    };
+
+    // Show optimistic post immediately
+    onNewPost?.(optimisticPost);
+
+    // Clear form immediately for better UX
+    const descValue = desc;
+    const imgValue = img;
+    setDesc("");
+    setImg(null);
+
     try {
-      await addPost(formData, img?.secure_url || "");
-      // Reset form after successful submission
-      setDesc("");
-      setImg(null);
+      await addPost(formData, imgValue?.secure_url || "");
+      // Post created successfully - trigger feed refresh
+      onPostCreated?.();
     } catch (error) {
       console.error("Error submitting post:", error);
       alert("Failed to post. Please try again.");
+      // Restore form values on error
+      setDesc(descValue);
+      setImg(imgValue);
+      // Clear optimistic post
+      onNewPost?.(null);
     } finally {
       setIsSubmitting(false);
     }
