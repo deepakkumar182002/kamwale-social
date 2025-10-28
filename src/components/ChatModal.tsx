@@ -23,6 +23,8 @@ interface Message {
   type: string;
   readAt?: string;
   sender: User;
+  // client-only flag for optimistic UI (true while waiting for server)
+  _isSending?: boolean;
 }
 
 interface Chat {
@@ -204,6 +206,48 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
   const sendMessage = async () => {
     if (!message.trim() || !selectedChat) return;
 
+    // Optimistic UI: create a temporary message and append immediately
+    const tempId = `temp-${Date.now()}`;
+    const tempMessage: Message = {
+      id: tempId,
+      content: message,
+      senderId: currentUserMongoId || "",
+      createdAt: new Date().toISOString(),
+      type: "text",
+      _isSending: true,
+      sender: {
+        id: currentUserMongoId || "",
+        username: user?.username || "",
+        avatar: user?.imageUrl || null,
+        name: user?.firstName || null,
+        surname: user?.lastName || null,
+      },
+    };
+
+    // Clear input immediately
+    setMessage("");
+
+    // Append to selected chat messages optimistically
+    setSelectedChat((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        messages: [...prev.messages, tempMessage],
+      };
+    });
+
+    // Also update chats list lastMessage locally to reflect recent message
+    setChats((prev) =>
+      prev.map((c) =>
+        c.id === selectedChat.id
+          ? { ...c, lastMessage: { ...tempMessage, id: tempId } as any }
+          : c
+      )
+    );
+
+    // Scroll to bottom so optimistic message is visible
+    setTimeout(scrollToBottom, 50);
+
     try {
       const response = await fetch(`/api/chats/${selectedChat.id}/messages`, {
         method: "POST",
@@ -218,20 +262,54 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
 
       if (response.ok) {
         const newMessage = await response.json();
-        setMessage("");
+
+        // Replace temp message with server message
         setSelectedChat((prev) => {
-          if (!prev) return null;
+          if (!prev) return prev;
           return {
             ...prev,
-            messages: [...prev.messages, newMessage],
+            messages: prev.messages.map((m) => (m.id === tempId ? newMessage : m)),
           };
         });
-        
-        // Create notification
-        await createNotification(selectedChat.id);
-        await fetchChats();
+
+        // Update chats list lastMessage with real message
+        setChats((prev) =>
+          prev.map((c) =>
+            c.id === selectedChat.id ? { ...c, lastMessage: newMessage } : c
+          )
+        );
+
+        // Create notification (fire-and-forget)
+        createNotification(selectedChat.id).catch((e) =>
+          console.error("Notification error:", e)
+        );
+
+        // Optionally refresh chats in background
+        fetchChats().catch(() => {});
+      } else {
+        // If send failed, mark the temp message as failed (remove _isSending)
+        setSelectedChat((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            messages: prev.messages.map((m) =>
+              m.id === tempId ? { ...m, _isSending: false } : m
+            ),
+          };
+        });
+        console.error("Failed to send message, server returned non-OK");
       }
     } catch (error) {
+      // Network error - mark message as failed
+      setSelectedChat((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: prev.messages.map((m) =>
+            m.id === tempId ? { ...m, _isSending: false } : m
+          ),
+        };
+      });
       console.error("Error sending message:", error);
     }
   };
@@ -448,7 +526,7 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
                         msg.senderId === currentUserMongoId
                           ? "bg-blue-500 text-white"
                           : "bg-gray-200 text-gray-800"
-                      }`}
+                      } ${msg._isSending ? "opacity-80 italic" : ""}`}
                     >
                       <p className="text-sm">{msg.content}</p>
                       
@@ -458,7 +536,7 @@ const ChatModal = ({ isOpen, onClose, initialUserId }: ChatModalProps) => {
                         </p>
                         {msg.senderId === currentUserMongoId && (
                           <span className="text-xs opacity-70 ml-2">
-                            {msg.readAt ? "✓✓" : "✓"}
+                            {msg._isSending ? "Sending..." : msg.readAt ? "✓✓" : "✓"}
                           </span>
                         )}
                       </div>
