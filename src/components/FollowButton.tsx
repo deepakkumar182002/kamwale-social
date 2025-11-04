@@ -51,20 +51,20 @@ const FollowButton = ({
   if (optimisticState.blocked) return null;
 
   return (
-    <form action={follow}>
+    <form action={follow} className="flex-1">
       <button
-        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+        className={`w-full px-4 py-1.5 text-sm font-semibold rounded-lg transition-colors ${
           optimisticState.following
-            ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
             : optimisticState.followingRequestSent
-            ? "bg-blue-100 text-blue-700 border border-blue-300"
-            : "bg-blue-500 text-white hover:bg-blue-600"
+            ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600"
+            : "bg-blue-600 text-white hover:bg-blue-700"
         }`}
       >
         {optimisticState.following
           ? "Following"
           : optimisticState.followingRequestSent
-          ? "Request Sent"
+          ? "Requested"
           : "Follow"}
       </button>
     </form>

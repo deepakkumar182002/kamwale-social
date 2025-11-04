@@ -54,8 +54,8 @@ const Feed = ({
 
   if (!isLoaded || loading) {
     return (
-      <div className="p-4 bg-white shadow-md rounded-lg flex flex-col gap-12">
-        <div className="animate-pulse">
+      <div className="bg-white md:rounded-lg md:shadow-md border-b md:border border-gray-200">
+        <div className="p-4 animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
           <div className="h-4 bg-gray-200 rounded w-1/2"></div>
         </div>
@@ -67,10 +67,14 @@ const Feed = ({
   const allPosts = optimisticPost ? [optimisticPost, ...posts] : posts;
 
   return (
-    <div className="p-4 bg-white shadow-md rounded-lg flex flex-col gap-12">
+    <div className="flex flex-col gap-0 md:gap-6">
       {allPosts.length ? (allPosts.map(post=>(
         <Post key={post.id} post={post}/>
-      ))) : "No posts found!"}
+      ))) : (
+        <div className="p-8 text-center text-gray-500 bg-white md:rounded-lg md:shadow-md border-b md:border border-gray-200">
+          No posts found!
+        </div>
+      )}
     </div>
   );
 };

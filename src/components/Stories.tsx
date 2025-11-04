@@ -39,10 +39,10 @@ const Stories = () => {
 
   if (!isLoaded || loading) {
     return (
-      <div className="p-4 bg-white rounded-lg shadow-md overflow-scroll text-xs scrollbar-hide">
-        <div className="flex gap-8 w-max animate-pulse">
+      <div className="p-3 md:p-4 bg-white md:rounded-lg md:shadow-md border-b md:border border-gray-200 overflow-x-auto overflow-y-hidden text-xs scrollbar-hide">
+        <div className="flex gap-4 md:gap-8 w-max animate-pulse">
           <div className="flex flex-col items-center gap-2 cursor-pointer">
-            <div className="w-20 h-20 rounded-full bg-gray-200"></div>
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gray-200"></div>
             <div className="w-12 h-3 bg-gray-200 rounded"></div>
           </div>
         </div>
@@ -53,8 +53,8 @@ const Stories = () => {
   if (!user) return null;
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-md overflow-scroll text-xs scrollbar-hide">
-      <div className="flex gap-8 w-max">
+    <div className="p-3 md:p-4 bg-white md:rounded-lg md:shadow-md border-b md:border border-gray-200 overflow-x-auto overflow-y-hidden text-xs scrollbar-hide">
+      <div className="flex gap-4 md:gap-8 w-max">
         <StoryList stories={stories} userId={user.id}/>
       </div>
     </div>
