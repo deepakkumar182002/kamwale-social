@@ -17,6 +17,7 @@ const AddPost = ({
   const { user, isLoaded } = useUser();
   const [desc, setDesc] = useState("");
   const [img, setImg] = useState<any>();
+  const [video, setVideo] = useState<any>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isLoaded) {
@@ -33,6 +34,7 @@ const AddPost = ({
       id: `temp-${Date.now()}`,
       desc: desc,
       img: img?.secure_url || null,
+      video: video?.secure_url || null,
       createdAt: new Date().toISOString(),
       user: {
         id: user?.id || "",
@@ -56,11 +58,13 @@ const AddPost = ({
     // Clear form immediately for better UX
     const descValue = desc;
     const imgValue = img;
+    const videoValue = video;
     setDesc("");
     setImg(null);
+    setVideo(null);
 
     try {
-      await addPost(formData, imgValue?.secure_url || "");
+      await addPost(formData, imgValue?.secure_url || "", videoValue?.secure_url || "");
       // Post created successfully - trigger feed refresh
       onPostCreated?.();
     } catch (error) {
@@ -69,6 +73,7 @@ const AddPost = ({
       // Restore form values on error
       setDesc(descValue);
       setImg(imgValue);
+      setVideo(videoValue);
       // Clear optimistic post
       onNewPost?.(null);
     } finally {
@@ -128,6 +133,23 @@ const AddPost = ({
             </button>
           </div>
         )}
+        {/* UPLOADED VIDEO PREVIEW */}
+        {video && (
+          <div className="mt-4 relative">
+            <video
+              src={video.secure_url}
+              controls
+              className="w-full max-w-md rounded-lg"
+            />
+            <button
+              onClick={() => setVideo(null)}
+              className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+              type="button"
+            >
+              ×
+            </button>
+          </div>
+        )}
         {/* POST OPTIONS */}
         <div className="flex items-center gap-4 mt-4 text-gray-400 flex-wrap">
           <CldUploadWidget
@@ -154,10 +176,34 @@ const AddPost = ({
               );
             }}
           </CldUploadWidget>
-          <div className="flex items-center gap-2 cursor-pointer">
-            <Image src="/addVideo.png" alt="" width={20} height={20} />
-            Video
-          </div>
+          <CldUploadWidget
+            uploadPreset="kamwale"
+            options={{
+              resourceType: "video",
+              maxFileSize: 100000000, // 100MB
+            }}
+            onSuccess={(result, { widget }) => {
+              console.log("Video upload successful:", result.info);
+              setVideo(result.info);
+              widget.close();
+            }}
+            onError={(error) => {
+              console.error("Video upload error:", error);
+              alert("Video upload failed. Please try again.");
+            }}
+          >
+            {({ open }) => {
+              return (
+                <div
+                  className="flex items-center gap-2 cursor-pointer"
+                  onClick={() => open()}
+                >
+                  <Image src="/addVideo.png" alt="" width={20} height={20} />
+                  Video
+                </div>
+              );
+            }}
+          </CldUploadWidget>
           <div className="flex items-center gap-2 cursor-pointer">
             <Image src="/poll.png" alt="" width={20} height={20} />
             Poll

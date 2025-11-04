@@ -42,7 +42,13 @@ export async function GET(request: NextRequest) {
         postId: postId,
       },
       include: {
-        user: true
+        user: true,
+        _count: {
+          select: {
+            likes: true,
+            replies: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc"
