@@ -1,6 +1,7 @@
 "use client";
 
 import { Inter } from "next/font/google";
+// @ts-ignore: side-effect CSS import has no type declarations
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
