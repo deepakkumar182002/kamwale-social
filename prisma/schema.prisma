@@ -46,6 +46,7 @@ model Post {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   desc      String
   img       String?
+  video     String?
   createdAt DateTime @default(now())
   userId    String   @db.ObjectId
 
@@ -75,8 +76,44 @@ model Comment {
   userId    String   @db.ObjectId
   postId    String   @db.ObjectId
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  likes   CommentLike[]
+  replies CommentReply[]
+}
+
+model CommentLike {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  userId    String   @db.ObjectId
+  commentId String   @db.ObjectId
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+}
+
+model CommentReply {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  desc        String
+  createdAt   DateTime @default(now())
+  userId      String   @db.ObjectId
+  commentId   String   @db.ObjectId
+  taggedUserId String? @db.ObjectId
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  likes   ReplyLike[]
+}
+
+model ReplyLike {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @default(now())
+  userId    String   @db.ObjectId
+  replyId   String   @db.ObjectId
+
+  reply CommentReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, replyId])
 }
 
 model Follow {

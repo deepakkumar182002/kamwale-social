@@ -182,7 +182,16 @@ const ProfilePage = ({ params }: { params: Promise<{ username: string }> }) => {
           </div>
 
           {/* Action Buttons */}
-          {currentUserId && currentUserId !== user.id && (
+          {currentUserId && currentUserId === user.id ? (
+            <div className="flex gap-2">
+              <button className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                Edit Profile
+              </button>
+              <button className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                Share Profile
+              </button>
+            </div>
+          ) : currentUserId && (
             <div className="flex gap-2">
               <FollowButton
                 userId={user.id}
@@ -270,8 +279,17 @@ const ProfilePage = ({ params }: { params: Promise<{ username: string }> }) => {
                   : user.username}
               </h1>
               
-              {/* Follow Button */}
-              {currentUserId && currentUserId !== user.id && (
+              {/* Action Buttons */}
+              {currentUserId && currentUserId === user.id ? (
+                <div className="mb-4 flex gap-3 justify-center">
+                  <button className="bg-blue-500 text-white px-6 py-2 rounded-md text-sm font-semibold hover:bg-blue-600 transition">
+                    Edit Profile
+                  </button>
+                  <button className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-md text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                    Share Profile
+                  </button>
+                </div>
+              ) : currentUserId && (
                 <div className="mb-4 flex gap-3 justify-center">
                   <FollowButton
                     userId={user.id}

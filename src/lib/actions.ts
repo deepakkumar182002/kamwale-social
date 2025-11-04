@@ -340,7 +340,7 @@ export const addComment = async (postId: string, desc: string) => {
   }
 };
 
-export const addPost = async (formData: FormData, img: string) => {
+export const addPost = async (formData: FormData, img: string, video: string) => {
   const desc = formData.get("desc") as string;
 
   const Desc = z.string().min(1).max(255);
@@ -357,7 +357,7 @@ export const addPost = async (formData: FormData, img: string) => {
   if (!clerkUserId) throw new Error("User is not authenticated!");
 
   try {
-    console.log("Creating post with:", { desc: validatedDesc.data, clerkUserId, img });
+    console.log("Creating post with:", { desc: validatedDesc.data, clerkUserId, img, video });
     
     // Get MongoDB ObjectId from Clerk ID
     const userId = await getUserIdFromClerk(clerkUserId);
@@ -371,6 +371,7 @@ export const addPost = async (formData: FormData, img: string) => {
         desc: validatedDesc.data,
         userId: userId,
         img: img || null,
+        video: video || null,
       },
     });
 
@@ -424,6 +425,34 @@ export const addStory = async (img: string) => {
   }
 };
 
+export const updatePost = async (postId: string, desc: string) => {
+  const { userId: clerkUserId } = auth();
+
+  if (!clerkUserId) throw new Error("User is not authenticated!");
+
+  try {
+    // Get MongoDB ObjectId from Clerk ID
+    const userId = await getUserIdFromClerk(clerkUserId);
+    
+    if (!userId) throw new Error("User not found!");
+
+    await prisma.post.update({
+      where: {
+        id: postId,
+        userId,
+      },
+      data: {
+        desc,
+      },
+    });
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    console.log(err);
+    throw new Error("Failed to update post");
+  }
+};
+
 export const deletePost = async (postId: string) => {
   const { userId: clerkUserId } = auth();
 
@@ -441,8 +470,10 @@ export const deletePost = async (postId: string) => {
         userId,
       },
     });
-    revalidatePath("/")
+    revalidatePath("/");
+    return { success: true };
   } catch (err) {
     console.log(err);
+    throw new Error("Failed to delete post");
   }
 };
