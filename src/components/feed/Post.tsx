@@ -55,9 +55,9 @@ const Post = ({ post }: { post: FeedPostType }) => {
   const isOptimistic = (post as any)._isOptimistic;
   
   return (
-    <div className={`flex flex-col gap-4 ${isOptimistic ? 'opacity-80 animate-pulse' : ''}`}>
-      {/* USER */}
-      <div className="flex items-center justify-between">
+    <div className={`flex flex-col bg-white md:rounded-lg md:shadow-md border-b md:border border-gray-200 ${isOptimistic ? 'opacity-80 animate-pulse' : ''}`}>
+      {/* USER - Instagram style header */}
+      <div className="flex items-center justify-between p-3 md:p-4">
         <ClickableUserInfo user={post.user} />
         <div className="flex items-center gap-2">
           {isOptimistic && (
@@ -74,23 +74,23 @@ const Post = ({ post }: { post: FeedPostType }) => {
           {userId === post.user.id && !isOptimistic && <PostInfo postId={post.id} />}
         </div>
       </div>
-      {/* DESC */}
-      <div className="flex flex-col gap-4">
-        {post.img && (
-          <div className="w-full min-h-96 relative">
-            <Image
-              src={post.img}
-              fill
-              className="object-cover rounded-md"
-              alt=""
-            />
-          </div>
-        )}
-        <p>{post.desc}</p>
-      </div>
-      {/* INTERACTION */}
+      
+      {/* IMAGE - Full width on mobile like Instagram */}
+      {post.img && (
+        <div className="w-full aspect-square md:aspect-auto md:min-h-96 relative">
+          <Image
+            src={post.img}
+            fill
+            className="object-cover"
+            alt=""
+            priority={false}
+          />
+        </div>
+      )}
+      
+      {/* INTERACTION - Instagram style */}
       {!isOptimistic && (
-        <>
+        <div className="px-3 md:px-4">
           <Suspense fallback="Loading...">
             <PostInteraction
               postId={post.id}
@@ -98,10 +98,26 @@ const Post = ({ post }: { post: FeedPostType }) => {
               commentNumber={post._count.comments}
             />
           </Suspense>
+        </div>
+      )}
+      
+      {/* DESC - Instagram style caption */}
+      <div className="px-3 md:px-4 pb-2">
+        {post.desc && (
+          <p className="text-sm">
+            <span className="font-semibold mr-2">{post.user.username}</span>
+            {post.desc}
+          </p>
+        )}
+      </div>
+      
+      {/* COMMENTS */}
+      {!isOptimistic && (
+        <div className="px-3 md:px-4 pb-4">
           <Suspense fallback="Loading...">
             <Comments postId={post.id} />
           </Suspense>
-        </>
+        </div>
       )}
     </div>
   );

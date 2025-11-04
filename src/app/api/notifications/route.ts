@@ -44,6 +44,12 @@ export async function GET() {
             surname: true,
           },
         },
+        post: {
+          select: {
+            id: true,
+            img: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -142,7 +148,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PATCH() {
+export async function PATCH(request: NextRequest) {
   try {
     const { userId: clerkUserId } = await auth();
 
@@ -157,16 +163,32 @@ export async function PATCH() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Mark all notifications as read for this user
-    await prisma.notification.updateMany({
-      where: {
-        userId: userId,
-        read: false,
-      },
-      data: {
-        read: true,
-      },
-    });
+    const body = await request.json().catch(() => ({}));
+    const { notificationId } = body;
+
+    if (notificationId) {
+      // Mark single notification as read
+      await prisma.notification.update({
+        where: {
+          id: notificationId,
+          userId: userId, // Ensure user owns this notification
+        },
+        data: {
+          read: true,
+        },
+      });
+    } else {
+      // Mark all notifications as read for this user
+      await prisma.notification.updateMany({
+        where: {
+          userId: userId,
+          read: false,
+        },
+        data: {
+          read: true,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

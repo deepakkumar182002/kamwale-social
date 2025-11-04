@@ -41,54 +41,49 @@ const PostInteraction = ({
     } catch (err) {}
   };
   return (
-    <div className="flex items-center justify-between text-sm my-4">
-      <div className="flex gap-8">
-        <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-xl">
-          <form action={likeAction}>
-            <button>
-              <Image
-                src={optimisticLike.isLiked ? "/liked.png" : "/like.png"}
-                width={16}
-                height={16}
-                alt=""
-                className="cursor-pointer"
-              />
-            </button>
-          </form>
-          <span className="text-gray-300">|</span>
-          <span className="text-gray-500">
-            {optimisticLike.likeCount}
-            <span className="hidden md:inline"> Likes</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-xl">
+    <div className="flex items-center justify-between py-2 md:py-3">
+      {/* Instagram-style action buttons */}
+      <div className="flex gap-4 md:gap-6">
+        {/* Like Button */}
+        <form action={likeAction}>
+          <button className="flex items-center gap-2">
+            <Image
+              src={optimisticLike.isLiked ? "/liked.png" : "/like.png"}
+              width={24}
+              height={24}
+              alt="Like"
+              className="cursor-pointer w-6 h-6 md:w-7 md:h-7"
+            />
+            <span className="text-sm font-semibold text-gray-700 hidden sm:inline">
+              {optimisticLike.likeCount}
+            </span>
+          </button>
+        </form>
+        
+        {/* Comment Button */}
+        <div className="flex items-center gap-2 cursor-pointer">
           <Image
             src="/comment.png"
-            width={16}
-            height={16}
-            alt=""
-            className="cursor-pointer"
+            width={24}
+            height={24}
+            alt="Comment"
+            className="w-6 h-6 md:w-7 md:h-7"
           />
-          <span className="text-gray-300">|</span>
-          <span className="text-gray-500">
-            {commentNumber}<span className="hidden md:inline"> Comments</span>
+          <span className="text-sm font-semibold text-gray-700 hidden sm:inline">
+            {commentNumber}
           </span>
         </div>
       </div>
-      <div className="">
-        <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-xl">
-          <Image
-            src="/share.png"
-            width={16}
-            height={16}
-            alt=""
-            className="cursor-pointer"
-          />
-          <span className="text-gray-300">|</span>
-          <span className="text-gray-500">
-            <span className="hidden md:inline"> Share</span>
-          </span>
-        </div>
+      
+      {/* Share Button */}
+      <div className="cursor-pointer">
+        <Image
+          src="/share.png"
+          width={24}
+          height={24}
+          alt="Share"
+          className="w-6 h-6 md:w-7 md:h-7"
+        />
       </div>
     </div>
   );
