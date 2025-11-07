@@ -134,7 +134,7 @@ const BottomNav = () => {
             />
           </Link>
 
-          {/* Create Post - Center */}
+          {/* Create Post - Center - Opens modal with all post types */}
           <button
             onClick={() => setActivePanel(activePanel === 'create' ? null : 'create')}
             className={`flex flex-col items-center justify-center w-14 h-14 transition-colors ${
@@ -145,24 +145,6 @@ const BottomNav = () => {
               className={`w-7 h-7 ${activePanel === 'create' ? "fill-current" : ""}`}
               strokeWidth={activePanel === 'create' ? 2.5 : 2}
             />
-          </button>
-
-          {/* Notifications */}
-          <button
-            onClick={() => setActivePanel(activePanel === 'notifications' ? null : 'notifications')}
-            className={`relative flex flex-col items-center justify-center w-14 h-14 transition-colors ${
-              activePanel === 'notifications' ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"
-            }`}
-          >
-            <Heart 
-              className={`w-6 h-6 ${activePanel === 'notifications' ? "fill-current" : ""}`}
-              strokeWidth={activePanel === 'notifications' ? 2.5 : 2}
-            />
-            {unreadNotifCount > 0 && (
-              <div className="absolute top-1 right-2 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
-              </div>
-            )}
           </button>
 
           {/* Messages */}
@@ -222,19 +204,6 @@ const BottomNav = () => {
       >
         <MessageDropUp 
           onChatSelect={handleChatSelect}
-        />
-      </DropUpPanel>
-
-      <DropUpPanel
-        isOpen={activePanel === 'notifications'}
-        onClose={() => setActivePanel(null)}
-        title="Notifications"
-        minHeight={300}
-        maxHeight={maxHeight}
-      >
-        <NotificationDropUp 
-          onNotificationClick={handleNotificationClick}
-          onClose={() => setActivePanel(null)}
         />
       </DropUpPanel>
 

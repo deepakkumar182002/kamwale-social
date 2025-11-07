@@ -8,12 +8,14 @@ const Feed = ({
   username, 
   onPostsLoaded,
   optimisticPost,
-  refreshTrigger 
+  refreshTrigger,
+  exploreMode 
 }: { 
   username?: string;
   onPostsLoaded?: (posts: any[]) => void;
   optimisticPost?: any;
   refreshTrigger?: number;
+  exploreMode?: boolean;
 }) => {
   const { user, isLoaded } = useUser();
   const [posts, setPosts] = useState<any[]>([]);
@@ -24,7 +26,9 @@ const Feed = ({
       try {
         setLoading(true);
         let url = '/api/posts';
-        if (username) {
+        if (exploreMode) {
+          url = '/api/posts?explore=true';
+        } else if (username) {
           url = `/api/posts?username=${encodeURIComponent(username)}`;
         }
         
@@ -50,7 +54,7 @@ const Feed = ({
     if (isLoaded) {
       fetchPosts();
     }
-  }, [username, isLoaded, onPostsLoaded, refreshTrigger]);
+  }, [username, isLoaded, onPostsLoaded, refreshTrigger, exploreMode]);
 
   if (!isLoaded || loading) {
     return (

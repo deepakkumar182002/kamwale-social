@@ -11,11 +11,32 @@ import FollowButton from "../FollowButton";
 import ClickableUserInfo from "../ClickableUserInfo";
 import { ThumbsUp, MessageCircle, Share2, Send } from "lucide-react";
 import { switchLike } from "@/lib/actions";
+import ArticlePostDisplay from "../post-display/ArticlePostDisplay";
+import PollPostDisplay from "../post-display/PollPostDisplay";
+import EventPostDisplay from "../post-display/EventPostDisplay";
+import FormattedPostContent from "./FormattedPostContent";
+import SharePostModal from "./SharePostModal";
 
-type FeedPostType = PostType & { user: User } & {
+type FeedPostType = PostType & { 
+  user: User;
   likes: [{ userId: string }];
-} & {
   _count: { comments: number };
+  postType?: string;
+  articleTitle?: string | null;
+  articleCoverImage?: string | null;
+  articleReadingTime?: number | null;
+  pollOptions?: any;
+  pollVotes?: any;
+  pollEndsAt?: Date | null;
+  pollMultiple?: boolean;
+  pollShowVotes?: boolean;
+  eventTitle?: string | null;
+  eventStartDate?: Date | null;
+  eventEndDate?: Date | null;
+  eventLocation?: string | null;
+  eventType?: string | null;
+  eventCoverImage?: string | null;
+  eventRSVPs?: any;
 };
 
 interface FollowStatus {
@@ -34,6 +55,7 @@ const Post = ({ post }: { post: FeedPostType }) => {
   const [loading, setLoading] = useState(true);
   const [showComments, setShowComments] = useState(false);
   const [showLikesModal, setShowLikesModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [likedUsers, setLikedUsers] = useState<any[]>([]);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState<number>(post.likes.length);
@@ -129,12 +151,51 @@ const Post = ({ post }: { post: FeedPostType }) => {
         </div>
         
         {/* DESCRIPTION */}
-        {post.desc && (
+        {post.desc && post.postType !== "article" && post.postType !== "poll" && post.postType !== "event" && (
           <div className="px-4 pb-3">
-            <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-              {post.desc}
-            </p>
+            <FormattedPostContent 
+              content={post.desc}
+              richContent={post.richContent}
+            />
           </div>
+        )}
+        
+        {/* ARTICLE POST */}
+        {post.postType === "article" && (
+          <ArticlePostDisplay
+            title={post.articleTitle || "Untitled"}
+            coverImage={post.articleCoverImage}
+            readingTime={post.articleReadingTime}
+            content={post.desc}
+          />
+        )}
+
+        {/* POLL POST */}
+        {post.postType === "poll" && post.pollOptions && (
+          <PollPostDisplay
+            postId={post.id}
+            question={post.desc}
+            options={post.pollOptions as string[]}
+            votes={(post.pollVotes as Record<string, number>) || {}}
+            endsAt={post.pollEndsAt ? (typeof post.pollEndsAt === 'string' ? post.pollEndsAt : post.pollEndsAt.toISOString()) : null}
+            allowMultiple={post.pollMultiple}
+            showResults={post.pollShowVotes}
+          />
+        )}
+
+        {/* EVENT POST */}
+        {post.postType === "event" && (
+          <EventPostDisplay
+            postId={post.id}
+            title={post.eventTitle || "Untitled Event"}
+            startDate={post.eventStartDate ? (typeof post.eventStartDate === 'string' ? post.eventStartDate : post.eventStartDate.toISOString()) : ""}
+            endDate={post.eventEndDate ? (typeof post.eventEndDate === 'string' ? post.eventEndDate : post.eventEndDate.toISOString()) : undefined}
+            location={post.eventLocation}
+            eventType={post.eventType}
+            coverImage={post.eventCoverImage}
+            rsvps={(post.eventRSVPs as string[]) || []}
+            description={post.desc}
+          />
         )}
         
         {/* VIDEO */}
@@ -150,7 +211,7 @@ const Post = ({ post }: { post: FeedPostType }) => {
         )}
         
         {/* IMAGE */}
-        {post.img && !post.video && (
+        {post.img && !post.video && post.postType !== "article" && post.postType !== "event" && (
           <div className="w-full relative">
             <Image
               src={post.img}
@@ -223,17 +284,7 @@ const Post = ({ post }: { post: FeedPostType }) => {
             
             {/* Share Button */}
             <button
-              onClick={() => {
-                if (navigator.share) {
-                  navigator.share({
-                    title: 'Check out this post',
-                    url: `${window.location.origin}/?postId=${post.id}`,
-                  });
-                } else {
-                  navigator.clipboard.writeText(`${window.location.origin}/?postId=${post.id}`);
-                  alert('Link copied to clipboard!');
-                }
-              }}
+              onClick={() => setShowShareModal(true)}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-600 dark:text-gray-400"
             >
               <Send className="w-5 h-5" />
@@ -287,6 +338,16 @@ const Post = ({ post }: { post: FeedPostType }) => {
           </div>
         </div>
       )}
+
+      {/* SHARE MODAL */}
+      <SharePostModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        postId={post.id}
+        postContent={post.desc || ""}
+        postAuthor={post.user.username || post.user.name || "User"}
+        postAuthorAvatar={post.user.avatar || undefined}
+      />
     </>
   );
 };

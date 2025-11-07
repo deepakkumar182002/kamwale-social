@@ -32,7 +32,7 @@ const RightMenu = ({ user }: { user?: User }) => {
       {/* Birthdays - Moved below profile */}
       <Birthdays />
       
-      <Ad size="md" />
+      {/* <Ad size="md" /> */}
     </div>
   );
 };

@@ -11,13 +11,19 @@ interface SidebarProps {
   isNotificationOpen: boolean;
   onMessageClick: () => void;
   isMessageOpen: boolean;
+  onSearchClick: () => void;
+  isSearchOpen: boolean;
+  onExpandSidebar: () => void;
 }
 
 const Sidebar = ({ 
   onNotificationClick, 
   isNotificationOpen,
   onMessageClick,
-  isMessageOpen 
+  isMessageOpen,
+  onSearchClick,
+  isSearchOpen,
+  onExpandSidebar 
 }: SidebarProps) => {
   const [showMore, setShowMore] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
@@ -26,9 +32,8 @@ const Sidebar = ({
 
   const mainMenuItems = [
     { href: "/", icon: "/home.png", label: "Home", onClick: null },
-    { href: "/search", icon: "/search.png", label: "Search", onClick: null },
-    { href: "/friends", icon: "/friends.png", label: "Friends", onClick: null },
-    { href: "/stories", icon: "/stories.png", label: "Stories", onClick: null },
+    { href: null, icon: "/search.png", label: "Search", onClick: onSearchClick },
+    { href: "/explore", icon: "/people.png", label: "Explore", onClick: null },
   ];
 
   const moreMenuItems = [
@@ -69,14 +74,23 @@ const Sidebar = ({
 
   return (
     <>
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar - Only visible on large screens (1024px+) */}
       <div className={`hidden lg:flex fixed left-0 top-0 h-screen bg-white border-r border-gray-200 flex-col z-40 transition-all duration-300 ${
-        isNotificationOpen || isMessageOpen ? 'w-20' : 'w-64 xl:w-72'
+        isNotificationOpen || isMessageOpen || isSearchOpen ? 'w-20' : 'w-64 xl:w-72'
       }`}>
         {/* Logo */}
-        <div className={`p-6 border-b border-gray-200 ${isNotificationOpen || isMessageOpen ? 'hidden' : 'block'}`}>
-          <Link href="/" className="font-bold text-2xl text-blue-600">
-            KAMWALE
+        <div className={`p-6 border-b border-gray-200 ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'flex justify-center' : 'flex items-center'}`}>
+          <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/main_logo.png"
+              alt="Kamwale Logo"
+              width={40}
+              height={40}
+              className={`w-10 h-10 ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'block' : 'hidden'}`}
+            />
+            <span className={`font-bold text-3xl bg-gradient-to-r from-gray-900 via-gray-600 to-gray-400 bg-clip-text text-transparent ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'hidden' : 'block'}`} style={{ fontFamily: "'Pacific', 'Segoe Script', cursive" }}>
+              Kamwale
+            </span>
           </Link>
         </div>
 
@@ -84,29 +98,49 @@ const Sidebar = ({
         <div className="flex-1 overflow-y-auto py-4 scrollbar-hide">
           <nav className="flex flex-col gap-1 px-3">
             {mainMenuItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-colors hover:bg-gray-100 ${
-                  pathname === item.href ? "bg-gray-100 font-semibold" : ""
-                }`}
-                title={isNotificationOpen || isMessageOpen ? item.label : undefined}
-              >
-                <Image
-                  src={item.icon}
-                  alt={item.label}
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
-                />
-                <span className={`text-base ${isNotificationOpen || isMessageOpen ? 'hidden' : 'block'}`}>{item.label}</span>
-              </Link>
+              item.onClick ? (
+                <button
+                  key={item.label}
+                  onClick={item.onClick}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-gray-100 w-full text-left ${
+                    (item.label === "Search" && isSearchOpen) ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                  title={isNotificationOpen || isMessageOpen || isSearchOpen ? item.label : undefined}
+                >
+                  <Image
+                    src={item.icon}
+                    alt={item.label}
+                    width={20}
+                    height={20}
+                    className="w-5 h-5"
+                  />
+                  <span className={`text-sm ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'hidden' : 'block'}`}>{item.label}</span>
+                </button>
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href!}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-gray-100 ${
+                    pathname === item.href ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                  title={isNotificationOpen || isMessageOpen || isSearchOpen ? item.label : undefined}
+                >
+                  <Image
+                    src={item.icon}
+                    alt={item.label}
+                    width={20}
+                    height={20}
+                    className="w-5 h-5"
+                  />
+                  <span className={`text-sm ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'hidden' : 'block'}`}>{item.label}</span>
+                </Link>
+              )
             ))}
 
             {/* Messages - Special Button */}
             <button
               onClick={onMessageClick}
-              className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-colors hover:bg-gray-100 w-full text-left ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-gray-100 w-full text-left ${
                 isMessageOpen ? "bg-gray-100 font-semibold" : ""
               }`}
               title={isMessageOpen ? "Messages" : undefined}
@@ -114,17 +148,17 @@ const Sidebar = ({
               <Image
                 src="/messages.png"
                 alt="Messages"
-                width={24}
-                height={24}
-                className="w-6 h-6"
+                width={20}
+                height={20}
+                className="w-5 h-5"
               />
-              <span className={`text-base ${isNotificationOpen || isMessageOpen ? 'hidden' : 'block'}`}>Messages</span>
+              <span className={`text-sm ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'hidden' : 'block'}`}>Messages</span>
             </button>
 
             {/* Notifications - Special Button */}
             <button
               onClick={onNotificationClick}
-              className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-colors hover:bg-gray-100 w-full text-left ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-gray-100 w-full text-left ${
                 isNotificationOpen ? "bg-gray-100 font-semibold" : ""
               }`}
               title={isNotificationOpen ? "Notifications" : undefined}
@@ -133,33 +167,52 @@ const Sidebar = ({
                 <Image
                   src="/notifications.png"
                   alt="Notifications"
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
+                  width={20}
+                  height={20}
+                  className="w-5 h-5"
                 />
                 {unreadNotifCount > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold text-[10px]">
                     {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
                   </div>
                 )}
               </div>
-              <span className={`text-base ${isNotificationOpen || isMessageOpen ? 'hidden' : 'block'}`}>Notifications</span>
+              <span className={`text-sm ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'hidden' : 'block'}`}>Notifications</span>
             </button>
 
             {/* More Button */}
             <button
-              onClick={() => setShowMore(!showMore)}
-              className="flex items-center gap-4 px-4 py-3 rounded-lg transition-colors hover:bg-gray-100 w-full text-left"
-              title={isNotificationOpen || isMessageOpen ? "More" : undefined}
+              onClick={() => {
+                if (isNotificationOpen || isMessageOpen || isSearchOpen) {
+                  // When sidebar is narrow, expand it
+                  onExpandSidebar();
+                } else {
+                  // When sidebar is wide, toggle more menu
+                  setShowMore(!showMore);
+                }
+              }}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-gray-100 w-full text-left"
+              title={isNotificationOpen || isMessageOpen || isSearchOpen ? "More" : undefined}
             >
-              <Image
-                src="/more.png"
-                alt="More"
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <span className={`text-base ${isNotificationOpen || isMessageOpen ? 'hidden' : 'block'}`}>More</span>
+              {isNotificationOpen || isMessageOpen || isSearchOpen ? (
+                // Show three dots when sidebar is narrow
+                <div className="flex gap-1">
+                  <span className="w-1 h-1 bg-gray-700 rounded-full"></span>
+                  <span className="w-1 h-1 bg-gray-700 rounded-full"></span>
+                  <span className="w-1 h-1 bg-gray-700 rounded-full"></span>
+                </div>
+              ) : (
+                <>
+                  <Image
+                    src="/more.png"
+                    alt="More"
+                    width={20}
+                    height={20}
+                    className="w-5 h-5"
+                  />
+                  <span className="text-sm">More</span>
+                </>
+              )}
             </button>
 
             {/* More Menu Items */}
@@ -186,14 +239,7 @@ const Sidebar = ({
               </div>
             )}
 
-            {/* Create Post Button */}
-            {!isNotificationOpen && !isMessageOpen && (
-              <div className="mt-4 px-4">
-                <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                  Create Post
-                </button>
-              </div>
-            )}
+            
           </nav>
         </div>
 
