@@ -2,132 +2,70 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { useUser } from "@clerk/nextjs";
-import { CldUploadWidget } from "next-cloudinary";
+import CreatePostModal from "./create-post/CreatePostModal";
 
 const CreatePostDropUp = ({ onClose }: { onClose: () => void }) => {
-  const { user } = useUser();
-  const [desc, setDesc] = useState("");
-  const [img, setImg] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [selectedType, setSelectedType] = useState<"text" | "photo" | "video" | "article" | "poll" | "event" | null>(null);
 
-  const handlePost = async () => {
-    if (!desc.trim() && !img) return;
-
-    try {
-      setLoading(true);
-      const formData = new FormData();
-      formData.append("desc", desc);
-      if (img?.secure_url) {
-        formData.append("img", img.secure_url);
-      }
-
-      const response = await fetch("/api/posts", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        setDesc("");
-        setImg(null);
-        onClose();
-        // Refresh page to show new post
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error("Error creating post:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const postTypes = [
+    { id: "text" as const, label: "Text Post", icon: "/posts.png", desc: "Share your thoughts" },
+    { id: "photo" as const, label: "Photo", icon: "/addimage.png", desc: "Share photos" },
+    { id: "video" as const, label: "Video", icon: "/addVideo.png", desc: "Share videos" },
+    { id: "article" as const, label: "Article", icon: "/news.png", desc: "Write an article" },
+    { id: "poll" as const, label: "Poll", icon: "/poll.png", desc: "Create a poll" },
+    { id: "event" as const, label: "Event", icon: "/addevent.png", desc: "Create an event" },
+  ];
 
   return (
-    <div className="p-4">
-      {/* User Info */}
-      <div className="flex items-center gap-3 mb-4">
-        <Image
-          src={user?.imageUrl || "/noAvatar.png"}
-          alt="Profile"
-          width={40}
-          height={40}
-          className="w-10 h-10 rounded-full object-cover"
+    <>
+      <div className="p-4">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
+          What would you like to create?
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-3">
+          {postTypes.map((type) => (
+            <button
+              key={type.id}
+              onClick={() => setSelectedType(type.id)}
+              className="flex flex-col items-center gap-2 p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-200 dark:border-gray-700"
+            >
+              <Image
+                src={type.icon}
+                alt={type.label}
+                width={32}
+                height={32}
+                className="w-8 h-8"
+              />
+              <div className="text-center">
+                <p className="font-semibold text-sm text-gray-800 dark:text-white">
+                  {type.label}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {type.desc}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Full-featured Create Post Modal */}
+      {selectedType && (
+        <CreatePostModal
+          isOpen={true}
+          onClose={() => {
+            setSelectedType(null);
+            onClose();
+          }}
+          onPostCreated={() => {
+            setSelectedType(null);
+            onClose();
+          }}
+          initialType={selectedType}
         />
-        <div>
-          <p className="font-semibold dark:text-white">{user?.username}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Public</p>
-        </div>
-      </div>
-
-      {/* Text Input */}
-      <textarea
-        placeholder="What's on your mind?"
-        value={desc}
-        onChange={(e) => setDesc(e.target.value)}
-        className="w-full p-3 bg-gray-50 dark:bg-gray-800 dark:text-white rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none scrollbar-hide"
-        rows={4}
-      />
-
-      {/* Image Preview */}
-      {img && (
-        <div className="relative mt-3">
-          <Image
-            src={img.secure_url}
-            alt="Upload"
-            width={400}
-            height={300}
-            className="w-full h-48 object-cover rounded-lg"
-          />
-          <button
-            onClick={() => setImg(null)}
-            className="absolute top-2 right-2 p-1.5 bg-gray-900/70 hover:bg-gray-900 text-white rounded-full transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
       )}
-
-      {/* Action Buttons */}
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-3">
-          {/* Upload Image */}
-          <CldUploadWidget
-            uploadPreset="social"
-            onSuccess={(result) => setImg(result.info)}
-          >
-            {({ open }) => (
-              <button
-                onClick={() => open()}
-                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <Image src="/addimage.png" alt="Photo" width={20} height={20} />
-                <span className="text-sm text-gray-600 dark:text-gray-400">Photo</span>
-              </button>
-            )}
-          </CldUploadWidget>
-
-          {/* Video Button */}
-          <button className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-            <Image src="/addVideo.png" alt="Video" width={20} height={20} />
-            <span className="text-sm text-gray-600 dark:text-gray-400">Video</span>
-          </button>
-        </div>
-
-        {/* Post Button */}
-        <button
-          onClick={handlePost}
-          disabled={loading || (!desc.trim() && !img)}
-          className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
-            loading || (!desc.trim() && !img)
-              ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700 text-white"
-          }`}
-        >
-          {loading ? "Posting..." : "Post"}
-        </button>
-      </div>
-    </div>
+    </>
   );
 };
 

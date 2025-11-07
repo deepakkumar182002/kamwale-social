@@ -24,6 +24,16 @@ export async function POST(req: NextRequest) {
 
     const { isOnline } = await req.json();
 
+    // Check if user exists first
+    const existingUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!existingUser) {
+      // User doesn't exist yet, they will be created by getUserIdFromClerk on next API call
+      return NextResponse.json({ success: true, message: "User pending creation" });
+    }
+
     await prisma.user.update({
       where: { clerkId: userId },
       data: {

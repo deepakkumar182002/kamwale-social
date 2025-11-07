@@ -9,10 +9,12 @@ const PostInteraction = ({
   postId,
   likes,
   commentNumber,
+  onShare,
 }: {
   postId: string;
   likes: string[];
   commentNumber: number;
+  onShare?: () => void;
 }) => {
   const { isLoaded, userId } = useAuth();
   const [likeState, setLikeState] = useState({
@@ -76,7 +78,7 @@ const PostInteraction = ({
       </div>
       
       {/* Share Button */}
-      <div className="cursor-pointer">
+      <div className="cursor-pointer" onClick={onShare}>
         <Image
           src="/share.png"
           width={24}

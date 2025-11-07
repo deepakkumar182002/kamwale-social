@@ -6,7 +6,6 @@ import Stories from "@/components/Stories";
 import Feed from "@/components/feed/Feed";
 import LeftMenu from "@/components/leftMenu/LeftMenu";
 import RightMenu from "@/components/rightMenu/RightMenu";
-import FloatingCreateButton from "@/components/FloatingCreateButton";
 
 const Homepage = () => {
   const [optimisticPost, setOptimisticPost] = useState<any>(null);
@@ -28,17 +27,22 @@ const Homepage = () => {
 
   return (
     <>
-      <div className="flex gap-0 lg:gap-8 lg:pt-6 lg:justify-center">
-        {/* Main Content - Wider center column */}
-        <div className="w-full lg:w-[600px] xl:w-[700px]">
+      <div className="flex flex-col lg:flex-row gap-0 lg:gap-4 xl:gap-6 lg:pt-6 lg:justify-center relative z-10 w-full max-w-full overflow-x-hidden">
+        {/* Desktop Left Sidebar - Hidden on mobile */}
+        {/* <div className="hidden lg:block lg:w-[260px] xl:w-[300px] flex-shrink-0">
+        </div> */}
+          <LeftMenu type="home" />
+        
+        {/* Main Content - Responsive width with max constraints */}
+        <div className="w-full lg:w-[480px] xl:w-[560px] flex-shrink-0 max-w-full">
           <div className="flex flex-col gap-0 md:gap-6">
             {/* Stories - full width on mobile like Instagram */}
             <div className="md:rounded-lg overflow-hidden">
               <Stories />
             </div>
             
-            {/* Add Post - hidden on mobile, show on tablet+ */}
-            <div className="hidden md:block">
+            {/* Add Post - Now visible on all screen sizes */}
+            <div className="bg-white md:rounded-lg md:shadow-sm border-b md:border border-gray-200">
               <AddPost onNewPost={handleNewPost} onPostCreated={handlePostCreated} />
             </div>
             
@@ -51,17 +55,11 @@ const Homepage = () => {
           </div>
         </div>
         
-        {/* Desktop Right Sidebar - Profile & Birthdays */}
-        <div className="hidden lg:block w-[320px] xl:w-[360px]">
+        {/* Desktop Right Sidebar - Hidden on mobile */}
+        <div className="hidden lg:block lg:w-[260px] xl:w-[300px] flex-shrink-0">
           <RightMenu />
         </div>
       </div>
-      
-      {/* Floating Create Button - Mobile Only */}
-      <FloatingCreateButton 
-        onNewPost={handleNewPost} 
-        onPostCreated={handlePostCreated}
-      />
     </>
   );
 };

@@ -66,9 +66,15 @@ const StoryList = ({
     <>
       <CldUploadWidget
         uploadPreset="kamwale"
+        options={{
+          cloudName: "dhavbpm5k",
+        }}
         onSuccess={(result, { widget }) => {
           setImg(result.info);
           widget.close();
+        }}
+        onError={(error) => {
+          console.error("Story upload error:", error);
         }}
       >
         {({ open }) => {

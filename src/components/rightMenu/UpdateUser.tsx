@@ -45,7 +45,13 @@ const UpdateUser = ({ user }: { user: User }) => {
             {/* COVER PIC UPLOAD */}
             <CldUploadWidget
               uploadPreset="kamwale"
+              options={{
+                cloudName: "dhavbpm5k",
+              }}
               onSuccess={(result) => setCover(result.info)}
+              onError={(error) => {
+                console.error("Cover upload error:", error);
+              }}
             >
               {({ open }) => {
                 return (
