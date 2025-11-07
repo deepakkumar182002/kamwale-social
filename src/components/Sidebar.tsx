@@ -88,7 +88,7 @@ const Sidebar = ({
               height={40}
               className={`w-10 h-10 ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'block' : 'hidden'}`}
             />
-            <span className={`font-bold text-3xl bg-gradient-to-r from-gray-900 via-gray-600 to-gray-400 bg-clip-text text-transparent ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'hidden' : 'block'}`} style={{ fontFamily: "'Pacific', 'Segoe Script', cursive" }}>
+            <span className={`font-bold text-3xl bg-gradient-to-r from-gray-900 via-gray-600 to-gray-400 bg-clip-text text-transparent ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'hidden' : 'block'}`} style={{ fontFamily: "'Pacifico', 'Segoe Script', cursive" }}>
               Kamwale
             </span>
           </Link>
