@@ -79,9 +79,18 @@ const Sidebar = ({
         isNotificationOpen || isMessageOpen || isSearchOpen ? 'w-20' : 'w-64 xl:w-72'
       }`}>
         {/* Logo */}
-        <div className={`p-6 border-b border-gray-200 ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'hidden' : 'block'}`}>
-          <Link href="/" className="font-bold text-2xl text-blue-600">
-            KAMWALE
+        <div className={`p-6 border-b border-gray-200 ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'flex justify-center' : 'flex items-center'}`}>
+          <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/main_logo.png"
+              alt="Kamwale Logo"
+              width={40}
+              height={40}
+              className={`w-10 h-10 ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'block' : 'hidden'}`}
+            />
+            <span className={`font-bold text-3xl bg-gradient-to-r from-gray-900 via-gray-600 to-gray-400 bg-clip-text text-transparent ${isNotificationOpen || isMessageOpen || isSearchOpen ? 'hidden' : 'block'}`} style={{ fontFamily: "'Pacific', 'Segoe Script', cursive" }}>
+              Kamwale
+            </span>
           </Link>
         </div>
 

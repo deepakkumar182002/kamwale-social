@@ -54,8 +54,14 @@ const Navbar = () => {
     <div className="h-16 flex items-center justify-between">
       {/* LEFT - Mobile only logo */}
       <div className="w-auto">
-        <Link href="/" className="font-bold text-lg text-blue-600">
-          KAMWALE
+        <Link href="/" className="flex items-center gap-2">
+          <Image
+            src="/main_logo.png"
+            alt="Kamwale Logo"
+            width={32}
+            height={32}
+            className="w-8 h-8"
+          />
         </Link>
       </div>
       
