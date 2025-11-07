@@ -1,56 +1,17 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
 import { User } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
-import UserInfoCardInteraction from "./UserInfoCardInteraction";
 import UpdateUser from "./UpdateUser";
 
 interface UserInfoCardProps {
   user: User;
 }
 
-interface UserRelationStatus {
-  isUserBlocked: boolean;
-  isFollowing: boolean;
-  isFollowingSent: boolean;
-}
-
 const UserInfoCard = ({ user }: UserInfoCardProps) => {
   const { user: currentUser, isLoaded } = useUser();
-  const [relationStatus, setRelationStatus] = useState<UserRelationStatus>({
-    isUserBlocked: false,
-    isFollowing: false,
-    isFollowingSent: false
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchRelationStatus = async () => {
-      if (currentUser && currentUser.id !== user.id) {
-        try {
-          const response = await fetch(`/api/users/follow-status?userId=${user.id}`);
-          if (response.ok) {
-            const status = await response.json();
-            setRelationStatus({
-              isUserBlocked: status.isBlocked,
-              isFollowing: status.isFollowing,
-              isFollowingSent: status.isFollowRequestSent
-            });
-          }
-        } catch (error) {
-          console.error('Error fetching relation status:', error);
-        }
-      }
-      setLoading(false);
-    };
-
-    if (isLoaded) {
-      fetchRelationStatus();
-    }
-  }, [currentUser, user.id, isLoaded]);
 
   const createdAtDate = new Date(user.createdAt);
   const formattedDate = createdAtDate.toLocaleDateString("en-US", {
@@ -125,19 +86,11 @@ const UserInfoCard = ({ user }: UserInfoCardProps) => {
               </Link>
             </div>
           )}
+        </div>
           <div className="flex gap-1 items-center">
             <Image src="/date.png" alt="" width={16} height={16} />
             <span>Joined {formattedDate}</span>
           </div>
-        </div>
-        {currentUser && currentUser.id !== user.id && !loading && (
-          <UserInfoCardInteraction
-            userId={user.id}
-            isUserBlocked={relationStatus.isUserBlocked}
-            isFollowing={relationStatus.isFollowing}
-            isFollowingSent={relationStatus.isFollowingSent}
-          />
-        )}
       </div>
     </div>
   );

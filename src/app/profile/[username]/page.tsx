@@ -7,10 +7,13 @@ import LeftMenu from "@/components/leftMenu/LeftMenu";
 import RightMenu from "@/components/rightMenu/RightMenu";
 import FollowButton from "@/components/FollowButton";
 import MessageButton from "@/components/MessageButton";
+import EditProfileModal from "@/components/EditProfileModal";
+import ShareProfileModal from "@/components/ShareProfileModal";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
+import { Link as LinkIcon } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -21,10 +24,13 @@ interface UserProfile {
   name: string | null;
   surname: string | null;
   description: string | null;
+  profession: string | null;
+  occupation: string | null;
   city: string | null;
   school: string | null;
   work: string | null;
   website: string | null;
+  links: Array<{ title: string; url: string }> | null;
   createdAt: Date;
   lastSeen: Date;
   isOnline: boolean;
@@ -48,6 +54,8 @@ const ProfilePage = ({ params }: { params: Promise<{ username: string }> }) => {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [username, setUsername] = useState<string>("");
 
   useEffect(() => {
@@ -84,7 +92,26 @@ const ProfilePage = ({ params }: { params: Promise<{ username: string }> }) => {
     };
 
     fetchProfile();
-  }, [username]);
+  }, [username, showEditModal]);
+
+  const handleEditSuccess = () => {
+    // Refetch profile data after successful edit
+    setLoading(true);
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch(`/api/users/profile/${username}`);
+        if (response.ok) {
+          const data = await response.json();
+          setProfileData(data);
+        }
+      } catch (err) {
+        console.error("Error refetching profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  };
 
   if (loading) {
     return (
@@ -166,28 +193,71 @@ const ProfilePage = ({ params }: { params: Promise<{ username: string }> }) => {
 
           {/* Name and Bio */}
           <div className="mb-3">
+            {/* Full Name */}
             <p className="font-semibold text-sm dark:text-white">
               {user.name && user.surname ? `${user.name} ${user.surname}` : user.username}
             </p>
+            
+            {/* Profession & Occupation */}
+            {(user.profession || user.occupation) && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                <span className="font-bold">{user.profession}</span>
+                {user.profession && user.occupation && " • "}
+                <span className="font-bold">{user.occupation}</span>
+              </p>
+            )}
+            
+            {/* Description */}
             {user.description && (
-              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-wrap">
                 {user.description}
               </p>
             )}
+            
+            {/* Website */}
             {user.website && (
-              <a href={user.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 mt-1 block">
+              <a 
+                href={user.website} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-sm text-blue-600 dark:text-blue-400 mt-1 block hover:underline"
+              >
                 {user.website}
               </a>
+            )}
+            
+            {/* Additional Links */}
+            {user.links && user.links.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {user.links.map((link: any, index: number) => (
+                  <a
+                    key={index}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <LinkIcon size={14} />
+                    {link.title}
+                  </a>
+                ))}
+              </div>
             )}
           </div>
 
           {/* Action Buttons */}
           {currentUserId && currentUserId === user.id ? (
             <div className="flex gap-2">
-              <button className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+              <button 
+                onClick={() => setShowEditModal(true)}
+                className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+              >
                 Edit Profile
               </button>
-              <button className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+              <button 
+                onClick={() => setShowShareModal(true)}
+                className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+              >
                 Share Profile
               </button>
             </div>
@@ -273,19 +343,89 @@ const ProfilePage = ({ params }: { params: Promise<{ username: string }> }) => {
                   className="w-32 h-32 rounded-full absolute left-0 right-0 m-auto -bottom-16 ring-4 ring-white object-cover"
                 />
               </div>
-              <h1 className="mt-20 mb-4 text-2xl font-medium">
+              <h1 className="mt-20 mb-2 text-2xl font-medium dark:text-white">
                 {user.name && user.surname
                   ? user.name + " " + user.surname
                   : user.username}
               </h1>
               
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">@{user.username}</p>
+              
+              {/* Profession & Occupation */}
+              {(user.profession || user.occupation) && (
+                <p className="text-base text-gray-700 dark:text-gray-300 mb-3">
+                  <span className="font-bold">{user.profession}</span>
+                  {user.profession && user.occupation && " • "}
+                  <span className="font-bold">{user.occupation}</span>
+                </p>
+              )}
+              
+              {/* Stats */}
+              <div className="flex items-center justify-center gap-12 mb-4">
+                <div className="flex flex-col items-center">
+                  <span className="font-bold text-lg dark:text-white">{user._count.posts}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Posts</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="font-bold text-lg dark:text-white">{user._count.followers}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Followers</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="font-bold text-lg dark:text-white">{user._count.followings}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Following</span>
+                </div>
+              </div>
+              
+              {/* Description */}
+              {user.description && (
+                <p className="text-sm text-gray-700 dark:text-gray-300 text-center max-w-md mb-3 whitespace-pre-wrap">
+                  {user.description}
+                </p>
+              )}
+              
+              {/* Website */}
+              {user.website && (
+                <a 
+                  href={user.website} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-sm text-blue-600 dark:text-blue-400 mb-2 hover:underline"
+                >
+                  {user.website}
+                </a>
+              )}
+              
+              {/* Additional Links */}
+              {user.links && user.links.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2 justify-center">
+                  {user.links.map((link: any, index: number) => (
+                    <a
+                      key={index}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                    >
+                      <LinkIcon size={14} />
+                      {link.title}
+                    </a>
+                  ))}
+                </div>
+              )}
+              
               {/* Action Buttons */}
               {currentUserId && currentUserId === user.id ? (
                 <div className="mb-4 flex gap-3 justify-center">
-                  <button className="bg-blue-500 text-white px-6 py-2 rounded-md text-sm font-semibold hover:bg-blue-600 transition">
+                  <button 
+                    onClick={() => setShowEditModal(true)}
+                    className="bg-blue-500 text-white px-6 py-2 rounded-md text-sm font-semibold hover:bg-blue-600 transition"
+                  >
                     Edit Profile
                   </button>
-                  <button className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-md text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                  <button 
+                    onClick={() => setShowShareModal(true)}
+                    className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-md text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                  >
                     Share Profile
                   </button>
                 </div>
@@ -304,20 +444,6 @@ const ProfilePage = ({ params }: { params: Promise<{ username: string }> }) => {
                 </div>
               )}
               
-              <div className="flex items-center justify-center gap-12 mb-4">
-                <div className="flex flex-col items-center">
-                  <span className="font-medium">{user._count.posts}</span>
-                  <span className="text-sm">Posts</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="font-medium">{user._count.followers}</span>
-                  <span className="text-sm">Followers</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="font-medium">{user._count.followings}</span>
-                  <span className="text-sm">Following</span>
-                </div>
-              </div>
             </div>
             <Feed username={user.username}/>
           </div>
@@ -326,6 +452,40 @@ const ProfilePage = ({ params }: { params: Promise<{ username: string }> }) => {
           <RightMenu user={user} />
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <EditProfileModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={handleEditSuccess}
+          userData={{
+            username: user.username,
+            name: user.name,
+            surname: user.surname,
+            description: user.description,
+            profession: user.profession,
+            occupation: user.occupation,
+            website: user.website,
+            links: user.links,
+            avatar: user.avatar,
+            cover: user.cover,
+            city: user.city,
+            school: user.school,
+            work: user.work,
+          }}
+        />
+      )}
+
+      {/* Share Profile Modal */}
+      {showShareModal && (
+        <ShareProfileModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          profileUsername={user.username}
+          profileUserId={user.id}
+        />
+      )}
     </>
   );
 };
